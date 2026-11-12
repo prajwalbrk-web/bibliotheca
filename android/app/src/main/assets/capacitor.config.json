@@ -1,0 +1,12 @@
+{
+	"appId": "com.readingroom.library",
+	"appName": "Bibliotheca",
+	"webDir": "www",
+	"backgroundColor": "#170e08",
+	"android": {
+		"allowMixedContent": false
+	},
+	"server": {
+		"androidScheme": "https"
+	}
+}
