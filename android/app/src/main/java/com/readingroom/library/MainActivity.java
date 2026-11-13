@@ -1,5 +1,0 @@
-package com.readingroom.library;
-
-import com.getcapacitor.BridgeActivity;
-
-public class MainActivity extends BridgeActivity {}
