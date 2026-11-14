@@ -55,13 +55,13 @@ const needsCheck=b=>/^unverified/i.test(b.genre||'')||/not confidently|not legib
 
 /* ---------- designed covers ---------- */
 const PAL=[
- {bg:'#5a1f26',bg2:'#35100f',ink:'#efdcb4',acc:'#d4ac58'},
- {bg:'#1f3d2b',bg2:'#10251a',ink:'#ecd9a0',acc:'#c9a24b'},
- {bg:'#1b2a44',bg2:'#0e1727',ink:'#e8d8ae',acc:'#c9a24b'},
- {bg:'#7a5230',bg2:'#4a2f18',ink:'#f2e4c0',acc:'#e3c06e'},
- {bg:'#2b2623',bg2:'#151210',ink:'#ecdfbb',acc:'#c9a24b'},
- {bg:'#8a6420',bg2:'#5a4012',ink:'#f6e8c0',acc:'#ecc873'},
- {bg:'#e6d8b8',bg2:'#c9b88f',ink:'#2b1d10',acc:'#8f6d2c'}
+ {bg:'#7a1424',bg2:'#42080f',ink:'#f3e2b8',acc:'#e0b95c'},
+ {bg:'#0f5a40',bg2:'#06301f',ink:'#eadfae',acc:'#d6b25a'},
+ {bg:'#1d3f86',bg2:'#0c2048',ink:'#e8dfb8',acc:'#d6b25a'},
+ {bg:'#5a3b86',bg2:'#2d1a50',ink:'#efe3c4',acc:'#e6c874'},
+ {bg:'#2a2d3d',bg2:'#12141f',ink:'#ece3c0',acc:'#c8b46a'},
+ {bg:'#8a5a14',bg2:'#4f3009',ink:'#f8ecc4',acc:'#f1d27a'},
+ {bg:'#e4d6b4',bg2:'#c4b184',ink:'#241a12',acc:'#7a5c22'}
 ];
 function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return Math.abs(h)}
 function palOf(b){
@@ -101,6 +101,7 @@ function openModal(el){
 }
 function closeModal(el){
   if(!el||el.hidden)return;
+  if(el.id==='m-auth'&&CLOUD&&!CS.user&&!CS.guest&&!CS.force)return;
   el.classList.remove('open');const i=modals.indexOf(el);if(i>-1)modals.splice(i,1);
   if(!modals.length)document.body.classList.remove('modal-open');
   setTimeout(()=>{if(!el.classList.contains('open'))el.hidden=true},RM?0:300);
@@ -133,7 +134,7 @@ const SEED=/*SEED*/[["Beyond Good and Evil", "Friedrich Nietzsche", "Philosophy;
 function localCollection(){
   const KEY='rr-books-v1',docs=new Map(),subs=new Set();let mem=false;
   const mkSeed=()=>{const base=Date.now()-SEED.length*1000;SEED.forEach((r,i)=>docs.set('b'+String(i+1).padStart(3,'0'),{id:'b'+String(i+1).padStart(3,'0'),title:r[0],author:r[1],genre:r[2],description:r[3],status:'yet',fav:false,cover:'',addedAt:base+i*1000}))};
-  try{const raw=localStorage.getItem(KEY);if(raw==null)mkSeed();else JSON.parse(raw).forEach(d=>docs.set(d.id,d))}catch(e){mem=true;docs.clear();mkSeed()}
+  try{const raw=localStorage.getItem(KEY);if(raw==null){if(!window.RR_FIREBASE)mkSeed()}else JSON.parse(raw).forEach(d=>docs.set(d.id,d))}catch(e){mem=true;docs.clear();if(!window.RR_FIREBASE)mkSeed()}
   const persist=()=>{if(mem)return;try{localStorage.setItem(KEY,JSON.stringify([...docs.values()]))}catch(e){throw{code:'quota_exceeded',message:'Storage full'}}};
   const snap=()=>({docs:[...docs.values()].map(d=>{const {id,...rest}=d;return{id,data:()=>({...rest})}})});
   const fire=()=>subs.forEach(f=>f(snap()));
@@ -154,20 +155,13 @@ function guard(){
 }
 async function initDb(){
   const db=await use('db');
+  if(!db&&window.RR_FIREBASE&&window.RRCloud){cloudBoot();return}
   if(!db){
     S.local=true;S.col=localCollection();
     const w=$('#who');w.hidden=false;$('#whoTxt').textContent='Saved in this browser';
     $('#inviteNote').hidden=false;$('#inviteNote').textContent='Your shelves are saved in this browser. Use Export to keep a copy as an Excel file.';
   }else S.col=db.collection('books');
-  const t=setTimeout(()=>{if(!S.ready){S.dbState='slow';renderAll()}},10000);
-  S.col.onSnapshot(snap=>{
-    clearTimeout(t);
-    const first=!S.ready;
-    S.books=snap.docs.map(d=>({...d.data(),id:d.id}));
-    S.ready=true;S.dbState='ok';
-    if(first)S.animNext=true;
-    renderAll();
-  },err=>{clearTimeout(t);S.dbState=(err&&err.code==='revoked')?'revoked':'error';renderAll()});
+  attach(S.col);
 }
 async function initUser(){
   const user=await use('user');
@@ -195,15 +189,18 @@ async function dbRetry(fn){
 function filtered(){
   const f=S.f,q=f.q.trim().toLowerCase();
   let l=S.books.filter(b=>{
-    if(f.status==='fav'){if(!b.fav)return false}else if(f.status!=='all'&&st(b)!==f.status)return false;
+    if(f.status==='lent'){if(!b.lentTo)return false}else if(f.status==='fav'){if(!b.fav)return false}else if(f.status!=='all'&&st(b)!==f.status)return false;
     if(f.genre!=='all'&&shelfOf(b).key!==f.genre)return false;
+    if(!extraFilter(b))return false;
     if(q&&!(b.title||'').toLowerCase().includes(q)&&!(b.author||'').toLowerCase().includes(q))return false;
     return true;
   });
   const cmp={collection:(a,b)=>(a.addedAt||0)-(b.addedAt||0),recent:(a,b)=>(b.addedAt||0)-(a.addedAt||0),
-    title:(a,b)=>(a.title||'').localeCompare(b.title||'',undefined,{sensitivity:'base'}),author:(a,b)=>(a.author||'').localeCompare(b.author||'',undefined,{sensitivity:'base'})}[f.sort];
+    title:(a,b)=>titleKey(a).localeCompare(titleKey(b),undefined,{sensitivity:'base'}),author:(a,b)=>surname(a.author).localeCompare(surname(b.author),undefined,{sensitivity:'base'})||titleKey(a).localeCompare(titleKey(b),undefined,{sensitivity:'base'})}[f.sort]||EXTRA_CMP[f.sort]||((x,y)=>0);
   return l.sort(cmp);
 }
+const titleKey=b=>String(b.title||'').replace(/^[^A-Za-z0-9]+/,'').replace(/^(the|a|an)\s+/i,'');
+const letterOf=(b,mode)=>{const s=mode==='author'?surname(b.author):titleKey(b);const c=(s.charAt(0)||'#').toUpperCase();return /[A-Z]/.test(c)?c:'#'};
 const seqMap=()=>{const m=new Map();[...S.books].sort((a,b)=>(a.addedAt||0)-(b.addedAt||0)).forEach((b,i)=>m.set(b.id,i+1));return m};
 const authKey=b=>{
   if(/various/i.test(b.author||''))return'VAR';if(/not confidently|not legible/i.test(b.author||''))return'UNK';
@@ -216,7 +213,7 @@ let rq=0;
 function renderAll(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;doRender()})}
 function doRender(){
   document.body.classList.toggle('readonly',!S.canWrite);
-  renderHero();renderDash();renderToolbar();renderLibrary();
+  renderHero();renderDash();renderToolbar();renderLibrary();if(typeof drawWish==='function')drawWish();renderExtras();syncOpts();
   if(S.openId)refreshProfile();
 }
 function countTo(el,to){
@@ -274,7 +271,7 @@ function renderDash(){
 
 /* toolbar */
 function renderToolbar(){
-  const c=counts(),T=[['all','All volumes',S.books.length],['yet','Yet to Start',c.yet],['reading','Currently Reading',c.reading],['read','Read',c.read],['fav','Favourites',c.fav]];
+  const c=counts(),T=[['all','All volumes',S.books.length],['yet','Yet to Start',c.yet],['reading','Currently Reading',c.reading],['read','Read',c.read],['fav','Favourites',c.fav]].concat(S.books.some(b=>b.lentTo)?[['lent','Lent out',S.books.filter(b=>b.lentTo).length]]:[]);
   $('#tabs').innerHTML=T.map(([k,l,n])=>`<button class="tab" data-tab="${k}" aria-pressed="${S.f.status===k}">${l}<em>${n}</em></button>`).join('');
   const by={};S.books.forEach(b=>{const k=shelfOf(b);by[k.key]=(by[k.key]||0)+1});
   const chips=[`<button class="chip" data-genre="all" aria-pressed="${S.f.genre==='all'}">All shelves</button>`];
@@ -317,7 +314,7 @@ function renderLibrary(){
   }
   lib.innerHTML=html;
   $$('.shelf-row',lib).forEach(r=>{const v=sc[r.parentElement.dataset.shelf];if(v)r.scrollLeft=v});
-  S.animNext=false;S.pop=null;restoreHover();
+  fitSpines();S.animNext=false;S.pop=null;restoreHover();
   if(S.justAdded){
     const id=S.justAdded;S.justAdded=null;
     setTimeout(()=>{const el=$(`#lib [data-id="${CSS.escape(id)}"]`);if(el){el.scrollIntoView({block:'center',inline:'center',behavior:RM?'auto':'smooth'});setTimeout(()=>{const r=el.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/3,50)},500)}},80);
@@ -334,6 +331,9 @@ function setFilter(p,scroll){
 document.addEventListener('click',e=>{
   const t=e.target;
   const go=t.closest('[data-go]');if(go){const el=document.getElementById(go.dataset.go);el&&el.scrollIntoView({behavior:RM?'auto':'smooth'});return}
+  const bkT=t.closest('#lib .bk');
+  if(!HOVER&&hoverId&&!t.closest('#hinfo')&&!bkT)hideInfo(true);
+  if(bkT){if(!HOVER&&!bkT.classList.contains('pulled')){showInfo(bkT);return}const bid=bkT.dataset.id;if(bid){hideInfo(true);openProfile(bid);return}}
   const stBtn=t.closest('button[data-st]');
   if(stBtn&&!t.closest('#m-profile')){const id=stBtn.closest('[data-id]')?.dataset.id;if(id)setStatus(id,stBtn.dataset.st,stBtn);return}
   const fav=t.closest('[data-fav]');if(fav){const id=fav.closest('[data-id]')?.dataset.id;if(id)toggleFav(id,fav);return}
@@ -371,9 +371,9 @@ document.addEventListener('pointerout',e=>{
 async function setStatus(id,status,src){
   const b=get(id);if(!b||st(b)===status)return;
   if(!guard())return;
-  const prev=b.status,prevAt=b.statusAt;b.status=status;b.statusAt=Date.now();S.pop=id;
+  const prev=b.status,prevAt=b.statusAt;b.status=status;b.statusAt=Date.now();const xp=stDates(b,status);S.pop=id;
   renderAll();reactStatus(b,status,src);
-  try{await dbRetry(()=>S.col.doc(id).update({status,statusAt:b.statusAt}))}
+  try{await dbRetry(()=>S.col.doc(id).update({status,statusAt:b.statusAt,...xp}))}
   catch(e){b.status=prev;b.statusAt=prevAt;renderAll();toast('That change could not be saved. Please try again.')}
 }
 async function toggleFav(id,src){
@@ -433,7 +433,7 @@ function fillProfile(b){
   ${hasPdf(b)||S.canWrite?`<div class="pfacts">${pdfButton(b)}${S.canWrite?`<button class="btn" data-pdfq="${esc(b.id)}">${hasPdf(b)?'Replace or remove PDF':'Add a PDF'}</button>`:''}</div>`:''}
   ${S.confirmDel?`<div class="confirm" role="alertdialog" aria-label="Confirm removal"><p>Remove <b>${esc(b.title)}</b> from the library? This cannot be undone from here.</p><div class="row"><button class="btn" data-delno>Keep it</button><button class="btn danger solid" data-delyes>Remove book</button></div></div>`
   :`<div class="pfacts w-only"><button class="btn solid" data-edit>${IC.pen}Edit</button><button class="btn danger" data-del>${IC.bin}Delete</button></div>`}`;
-  const ids=S.order,multi=ids.length>1&&ids.includes(b.id);$('#pPrev').hidden=$('#pNext').hidden=!multi;
+  enhanceProfile(b);const ids=S.order,multi=ids.length>1&&ids.includes(b.id);$('#pPrev').hidden=$('#pNext').hidden=!multi;
 }
 function refreshProfile(){const b=get(S.openId);if(!b){closeModal($('#m-profile'));return}fillProfile(b)}
 $('#m-profile').addEventListener('click',e=>{
@@ -460,7 +460,7 @@ const F={id:null,cover:'',status:'yet'};
 function openForm(id){
   if(!S.canWrite||!S.col){toast('You have read-only access to this library.');return}
   const b=id?get(id):null;
-  F.id=b?b.id:null;F.cover=b?b.cover||'':'';F.status=b?st(b):'yet';F.tone=b?b.tone||'':'';F.old=b||null;F.pdf={mode:'keep',url:'',file:null};
+  F.id=b?b.id:null;F.cover=b?b.cover||'':'';F.status=b?st(b):'yet';F.tone=b?b.tone||'':'';F.old=b||null;F.pdf={mode:'keep',url:'',file:null};F.fmt=b&&b.format?[...b.format]:[];drawFmt();
   $('#formH').textContent=b?'Edit book':'Add a book';
   $('#formSub').textContent=b?'Changes are saved to the library straight away.':'It will appear on the right shelf automatically.';
   $('#fTitle').value=b?b.title:'';$('#fAuthor').value=b?b.author:'';$('#fGenre').value=b?b.genre:'';$('#fDesc').value=b?b.description:'';
@@ -515,7 +515,7 @@ $('#bookForm').addEventListener('submit',async e=>{
   const title=$('#fTitle').value.trim(),author=$('#fAuthor').value.trim();
   if(!title||!author){const el=$(!title?'#fTitle':'#fAuthor');el.setAttribute('aria-invalid','true');el.focus();return}
   if(!guard())return;
-  const data={title,author,genre:$('#fGenre').value.trim(),description:$('#fDesc').value.trim(),status:F.status,cover:F.cover||'',tone:F.cover?(F.tone||''):''};
+  const data={title,author,genre:$('#fGenre').value.trim(),description:$('#fDesc').value.trim(),status:F.status,format:F.fmt||[],cover:F.cover||'',tone:F.cover?(F.tone||''):''};
   const btn=$('#fSave');btn.disabled=true;
   try{
     if(F.id){
@@ -530,7 +530,7 @@ $('#bookForm').addEventListener('submit',async e=>{
       await applyPdf(data,id);
       await dbRetry(()=>S.col.doc(id).set(data));
       if(!get(id))S.books.push({...data,id});
-      const nb={...data,id};
+      const nb={...data,id};wishClear(title,author);
       if(S.f.status!=='all'&&!(S.f.status==='fav'?nb.fav:st(nb)===S.f.status))S.f.status='all';
       if(S.f.genre!=='all'&&shelfOf(nb).key!==S.f.genre)S.f.genre='all';
       if(S.f.q.trim()&&!(title+author).toLowerCase().includes(S.f.q.trim().toLowerCase())){S.f.q='';$('#q').value=''}
@@ -615,8 +615,8 @@ async function initExport(){
   btn.onclick=async()=>{
     if(!window.XLSX){toast('The spreadsheet writer did not load. Reload and try again.');return}
     if(!S.books.length){toast('There is nothing to export yet.');return}
-    const rows=[...S.books].sort((a,b)=>(a.addedAt||0)-(b.addedAt||0)).map(b=>({'Book Title':b.title,'Author':b.author,'Genre':b.genre,'About the Book':b.description,'Reading Status':STATUS[st(b)],'Favourite':b.fav?'Yes':'No','Date Added':fmtDate(b.addedAt)}));
-    const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:34},{wch:26},{wch:34},{wch:80},{wch:18},{wch:10},{wch:14}];
+    const rows=[...S.books].sort((a,b)=>(a.addedAt||0)-(b.addedAt||0)).map(b=>({'Book Title':b.title,'Author':b.author,'Genre':b.genre,'About the Book':b.description,'Reading Status':STATUS[st(b)],'Favourite':b.fav?'Yes':'No','Date Added':fmtDate(b.addedAt),'Rating':b.rating||'','Format':(b.format||[]).join(', '),'Series':b.series||'','Started':fmtDate(b.startedAt),'Finished':fmtDate(b.finishedAt),'Lent To':b.lentTo||'','Note':b.note||''}));
+    const ws=XLSX.utils.json_to_sheet(rows);ws['!cols']=[{wch:34},{wch:26},{wch:34},{wch:80},{wch:18},{wch:10},{wch:14},{wch:8},{wch:20},{wch:20},{wch:14},{wch:14},{wch:16},{wch:60}];
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Book Catalogue');
     const data=XLSX.write(wb,{bookType:'xlsx',type:'array'});
     try{
@@ -801,7 +801,7 @@ function enterRoom(){
   if(entering)return;entering=true;
   const done=()=>{
     door.classList.add('gone');document.body.classList.remove('gated');gateEls.forEach(e=>e.inert=false);
-    scrollTo(0,0);setTimeout(()=>door.remove(),RM?0:950);
+    scrollTo(0,0);setTimeout(()=>door.remove(),RM?0:950);setTimeout(needAuth,RM?0:500);
   };
   if(RM){thump();done();return}
   [0,380,760].forEach(t=>setTimeout(()=>{thump();knockAnim()},t));
@@ -832,10 +832,10 @@ function dims(b){
   return{T,D,H:Math.round(D*1.5)};
 }
 function bkHTML(b,i){
-  const d=dims(b),p=palOf(b),s=st(b),sh=shelfOf(b),n=(b.title||'').length;
+  const d=dims(b),p=spinePal(b),s=st(b),sh=shelfOf(b),n=(b.title||'').length;
   const fs=n<=12?17:n<=20?15:n<=30?13:n<=42?11.5:10;
   const css=`--T:${d.T}px;--D:${d.D}px;--H:${d.H}px;--c1:${p.bg};--c2:${p.bg2};--ink:${p.ink};--acc:${p.acc};--i:${i}`;
-  return `<button class="bk${S.justAdded===b.id?' arrive':''}${S.pop===b.id?' pop':''}" data-open data-id="${esc(b.id)}" data-st="${s}" style="${css}" aria-label="${esc(b.title)} by ${esc(b.author)}. ${STATUS[s]}"><span class="box"><span class="f f-spine"><i class="rb"></i><i class="sb t"></i><i class="sb b"></i><span class="s-title" style="font-size:${fs}px">${esc(b.title)}</span><span class="s-author">${esc(b.author)}</span><span class="s-emb">${sh.abbr}</span>${b.fav?`<span class="s-fav">${IC.heart}</span>`:''}</span><span class="f f-cover">${coverHTML(b)}</span><span class="f f-back"></span><span class="f f-edge"></span></span></button>`;
+  return `<button class="bk${hasPdf(b)?' haspdf':''}${b.lentTo?' lent':''} sp${hash((b.title||'')+(b.author||''))%5}${S.justAdded===b.id?' arrive':''}${S.pop===b.id?' pop':''}" data-open data-id="${esc(b.id)}" data-st="${s}" style="${css}" aria-label="${esc(b.title)} by ${esc(b.author)}. ${STATUS[s]}"><span class="box"><span class="f f-spine"><i class="rb"></i><i class="sb t"></i><i class="sb b"></i><span class="s-title" style="font-size:${fs}px">${esc(b.title)}</span><span class="s-author">${esc(b.author)}</span><span class="s-emb">${sh.abbr}</span>${b.fav?`<span class="s-fav">${IC.heart}</span>`:''}</span><span class="f f-cover">${coverHTML(b)}</span><span class="f f-back"></span><span class="f f-edge"></span></span></button>`;
 }
 function chunkRows(books,avail){
   const rows=[];let cur=[],w=0;
@@ -847,7 +847,7 @@ function renderShelves(list,f,lib){
   let html='<div class="libflow">',i=0;
   SHELVES.forEach(s=>{
     const g=list.filter(b=>shelfOf(b).key===s.key);if(!g.length)return;
-    html+=`<div class="shelfblock" data-shelf="${esc(s.key)}"><div class="shelfhead"><h3>${esc(s.key)}</h3><span class="label">${g.length} ${plural(g.length,'volume','volumes')} · ${s.abbr}</span>${f.genre==='all'?`<button class="linkbtn" data-genre="${esc(s.key)}">Show only this shelf</button>`:''}</div><div class="case">`;
+    html+=`<div class="shelfblock" data-shelf="${esc(s.key)}" data-ab="${s.abbr}"><div class="shelfhead"><h3>${esc(s.key)}</h3><span class="label">${g.length} ${plural(g.length,'volume','volumes')} · ${s.abbr}</span>${f.genre==='all'?`<button class="linkbtn" data-genre="${esc(s.key)}">Show only this shelf</button>`:''}${critter(s.abbr)}</div><div class="case">`;
     chunkRows(g,avail).forEach((row,ri,all)=>{
       html+=`<div class="shelfrow">${row.map(b=>{S.order.push(b.id);return bkHTML(b,i++)}).join('')}${ri===all.length-1?'<i class="bookend" aria-hidden="true"></i>':''}</div>`;
     });
@@ -861,7 +861,7 @@ const hinfo=$('#hinfo');let hoverId=null,hideT=0,enterT=0;
 function buildInfo(){
   const b=get(hoverId);if(!b)return;
   const s=st(b),sh=shelfOf(b),seq=seqMap().get(b.id)||0;
-  hinfo.innerHTML=`<div class="hi-top"><span>${sh.abbr} · ${authKey(b)} · ${String(seq).padStart(3,'0')}</span><span>${esc(sh.key)}</span></div><h4>${esc(b.title)}</h4><p class="by">${esc(b.author)}</p><div class="tg">${tagsOf(b.genre).slice(0,4).map(t=>`<span>${esc(t)}</span>`).join('')}</div><p class="ds">${esc(b.description)||'No description yet.'}</p>
+  hinfo.innerHTML=`<div class="hi-top"><span>${sh.abbr} · ${authKey(b)} · ${String(seq).padStart(3,'0')}</span><span>${esc(sh.key)}</span></div><h4>${esc(b.title)}</h4><p class="by">${esc(b.author)}</p><div class="tg">${tagsOf(b.genre).slice(0,4).map(t=>`<span>${esc(t)}</span>`).join('')}</div><p class="ds">${esc(b.description)||'No description yet.'}</p>${fmtChips(b)}
   <div class="hs" role="group" aria-label="Reading status">${KEYS.map(k=>`<button data-hst="${k}" aria-pressed="${s===k}">${IC[k]}<span>${STATUS[k]}</span></button>`).join('')}<button class="fv" data-hfav aria-pressed="${!!b.fav}" aria-label="Favourite">${IC.heart}</button></div>
   <button class="btn solid go" data-hopen>Open the book</button>${hasPdf(b)?`<button class="btn go" data-readpdf="${esc(b.id)}">Read PDF</button>`:S.canWrite?`<button class="btn go" data-pdfq="${esc(b.id)}">Add a PDF</button>`:''}`;
 }
@@ -1103,25 +1103,17 @@ const loadJsPdf=()=>loadLib('jspdf',()=>!!(window.jspdf&&window.jspdf.jsPDF),['v
 const R={pdf:null,n:0,mode:'spread',pw:0,ph:0,cur:0,leaves:[],N:0,done:new Set(),tok:0,busy:false,book:null,snd:store.get('rr-snd',true)!==false};
 function paper(kind){
   try{
-    if(!R.snd)return;
-    AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
-    const t=AC.currentTime,dur=kind==='open'?.75:.6,len=Math.floor(AC.sampleRate*dur);
-    const buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);let lp=0;
-    for(let i=0;i<len;i++){
-      const x=i/len,env=Math.pow(Math.sin(Math.PI*Math.min(1,x*1.1)),1.3);
-      lp=lp*.55+(Math.random()*2-1)*.45;
-      const crack=Math.random()<.02?(Math.random()*2-1)*2:0;
-      d[i]=(lp*1.4+crack)*env*(.55+.45*Math.sin(x*70+Math.sin(x*17)*4));
+    if(R.snd){
+      AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
+      const t=AC.currentTime,dur=kind==='open'?.8:.55,len=Math.floor(AC.sampleRate*dur),buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
+      let last=0;for(let i=0;i<len;i++){last=(last+.02*(Math.random()*2-1))/1.02;d[i]=last*3.2}
+      const s=AC.createBufferSource(),lp=AC.createBiquadFilter(),g=AC.createGain();
+      s.buffer=buf;lp.type='lowpass';lp.frequency.setValueAtTime(2400,t);lp.frequency.exponentialRampToValueAtTime(700,t+dur);lp.Q.value=.3;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.16,t+.14);g.gain.exponentialRampToValueAtTime(.0005,t+dur);
+      s.connect(lp);lp.connect(g);g.connect(AC.destination);s.start(t);
     }
-    const s=AC.createBufferSource(),hp=AC.createBiquadFilter(),bp=AC.createBiquadFilter(),g=AC.createGain();
-    s.buffer=buf;hp.type='highpass';hp.frequency.value=500;bp.type='bandpass';bp.frequency.setValueAtTime(1100,t);bp.frequency.exponentialRampToValueAtTime(4200,t+dur*.7);bp.Q.value=.55;
-    g.gain.value=.9;s.connect(hp);hp.connect(bp);bp.connect(g);g.connect(AC.destination);s.start(t);
-    const o=AC.createOscillator(),og=AC.createGain(),at=t+dur*.62;
-    o.type='sine';o.frequency.setValueAtTime(150,at);o.frequency.exponentialRampToValueAtTime(55,at+.12);
-    og.gain.setValueAtTime(0,at);og.gain.linearRampToValueAtTime(.32,at+.012);og.gain.exponentialRampToValueAtTime(.001,at+.16);
-    o.connect(og);og.connect(AC.destination);o.start(at);o.stop(at+.2);
   }catch(e){}
-  try{navigator.vibrate&&navigator.vibrate([14,40,10])}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}
 }
 function rdSetSound(){const b=$('#rdSound');b.setAttribute('aria-pressed',R.snd);b.style.opacity=R.snd?1:.45;store.set('rr-snd',R.snd)}
 $('#rdSound').onclick=()=>{R.snd=!R.snd;rdSetSound()};
@@ -1156,7 +1148,7 @@ function label(){
   else if(sp){const a=c-1>=1?2*(c-1):0,bb=2*c-1;t=c>=R.N?`Page ${Math.min(n,2*(R.N-1))} · The end`:(a?`Pages ${a}–${Math.min(bb,n)} of ${n}`:`Page 1 of ${n}`)}
   else t=c>=R.N?`Page ${n} · The end`:`Page ${c} of ${n}`;
   $('#rdPos').textContent=t;$('#rdRange').max=R.N;$('#rdRange').value=c;
-  $('#rdPrev').disabled=c<=0;$('#rdNext').disabled=c>=R.N;
+  rdTrack();$('#rdPrev').disabled=c<=0;$('#rdNext').disabled=c>=R.N;
   const h=$('#rdHint');h.textContent=c===0?(R.mode==='spread'?'Click the cover to open':'Tap the cover to open'):'';
 }
 function pagesNear(){
@@ -1231,7 +1223,7 @@ function sizeBook(aspect){
 let rdAspect=.7,rdBook=null,rdW=0;
 async function openReader(b){
   if(!b||!hasPdf(b))return;
-  const tok=++R.tok;R.cur=0;R.pdf=null;rdBook=b;
+  const tok=++R.tok;R.cur=0;R.pdf=null;rdBook=b;rdTimeStart(b);
   $('#rdTitle').innerHTML=`${esc(b.title)}<small>${esc(b.author)}</small>`;
   const ol=$('#rdOpen');if(b.pdfKind!=='local'&&safeUrl(b.pdf)){ol.href=b.pdf;ol.hidden=false}else ol.hidden=true;
   $('#rdBook').innerHTML='';$('#rdLoad').hidden=false;$('#rdHint').textContent='';
@@ -1246,7 +1238,7 @@ async function openReader(b){
     R.pdf=pdf;R.n=pdf.numPages;rdAspect=v.width/v.height;
     $('#rdLoad').hidden=true;
     await new Promise(r=>requestAnimationFrame(r));
-    sizeBook(rdAspect);rdW=$('#rdStage').clientWidth;buildBook(b);
+    sizeBook(rdAspect);rdW=$('#rdStage').clientWidth;buildBook(b);rdRestore(b);
   }catch(err){
     console.warn('reader',err&&err.message);$('#rdLoad').hidden=true;closeModal($('#m-read'));
     if(err&&err.code==='missing')toast('That PDF is not stored on this device. Open Edit and attach it again.');
@@ -1254,7 +1246,7 @@ async function openReader(b){
     else toast('The PDF could not be opened. It may be damaged or password protected.');
   }
 }
-function rdCleanup(){R.tok++;try{R.pdf&&R.pdf.destroy()}catch(e){}R.pdf=null;R.done=new Set();$('#rdBook').innerHTML=''}
+function rdCleanup(){rdTimeStop();R.tok++;try{R.pdf&&R.pdf.destroy()}catch(e){}R.pdf=null;R.done=new Set();$('#rdBook').innerHTML=''}
 let rdT;addEventListener('resize',()=>{
   if(!rdOpen()||!R.pdf)return;clearTimeout(rdT);
   rdT=setTimeout(()=>{const w=$('#rdStage').clientWidth;if(Math.abs(w-rdW)<30&&R.mode===(w>=760?'spread':'single'))return;rdW=w;const c=R.cur;R.tok++;const tok=R.tok;sizeBook(rdAspect);R.cur=0;buildBook(rdBook);jump(Math.min(c,R.N))},220);
@@ -1490,6 +1482,550 @@ $('#pqSave').onclick=async()=>{
   }catch(e){toast('The PDF could not be saved. Please try again.')}
   finally{F.pdf=sp;F.old=so;btn.disabled=false}
 };
+
+
+/* ---------- wand sparkles (follows the pointer; off for reduced motion) ---------- */
+(function(){
+  if(RM)return;
+  const cv=document.createElement('canvas');cv.id='wand';cv.setAttribute('aria-hidden','true');document.body.appendChild(cv);
+  const cx=cv.getContext('2d');let P=[],run=false,lx=-99,ly=-99,dpr=Math.min(2,devicePixelRatio||1);
+  const size=()=>{cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cx.setTransform(dpr,0,0,dpr,0,0)};size();addEventListener('resize',size);
+  function star(x,y,r){cx.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i%2?r*.38:r;cx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr)}cx.closePath();cx.fill()}
+  function frame(){
+    cx.clearRect(0,0,innerWidth,innerHeight);
+    P=P.filter(p=>p.l>0);
+    for(const p of P){p.x+=p.vx;p.y+=p.vy;p.vy+=.012;p.l-=.022;cx.globalAlpha=Math.max(0,p.l);cx.fillStyle=p.c;cx.shadowColor=p.c;cx.shadowBlur=8;star(p.x,p.y,p.s*(.5+p.l*.6))}
+    cx.globalAlpha=1;cx.shadowBlur=0;
+    if(P.length)requestAnimationFrame(frame);else run=false;
+  }
+  addEventListener('pointermove',e=>{
+    if(document.body.classList.contains('modal-open'))return;
+    const d=Math.hypot(e.clientX-lx,e.clientY-ly);if(d<14)return;lx=e.clientX;ly=e.clientY;
+    for(let i=0;i<2;i++)P.push({x:e.clientX+(Math.random()-.5)*6,y:e.clientY+(Math.random()-.5)*6,vx:(Math.random()-.5)*.7,vy:Math.random()*.4-.1,l:1,s:2+Math.random()*3,c:Math.random()<.3?'#c9bfff':'#ffe9a8'});
+    if(P.length>70)P.splice(0,P.length-70);
+    if(!run){run=true;requestAnimationFrame(frame)}
+  },{passive:true});
+})();
+
+
+/* ---------- accounts: sign in, own libraries, sharing (cloud mode only) ---------- */
+const C=window.RRCloud,CLOUD=!!(window.RR_FIREBASE&&C&&C.enabled);
+const CS={user:null,libs:[],cur:null,attached:null,guest:false,authReady:false,unsub:null,creating:false,mode:'in'};
+const curLib=()=>CS.libs.find(l=>l.id===CS.cur&&!l.pending)||null;
+const ROLE={owner:'Owner',editor:'Can edit',viewer:'Can read'};
+function attach(col){
+  clearTimeout(S.dbT);S.dbT=setTimeout(()=>{if(!S.ready){S.dbState='slow';renderAll()}},10000);
+  try{S.unsub&&S.unsub()}catch(e){}
+  S.unsub=col.onSnapshot(snap=>{
+    clearTimeout(S.dbT);const first=!S.ready;
+    const all=snap.docs.map(d=>({...d.data(),id:d.id}));S.books=all.filter(x=>!x.wish);S.wish=all.filter(x=>x.wish);
+    S.ready=true;S.dbState='ok';if(first)S.animNext=true;renderAll();
+  },err=>{clearTimeout(S.dbT);S.dbState=(err&&(err.code==='revoked'||err.code==='permission-denied'))?'revoked':'error';renderAll()});
+}
+function detach(){try{S.unsub&&S.unsub()}catch(e){}S.unsub=null;S.books=[];S.wish=[];S.ready=false;S.col=null}
+function needAuth(){if(CLOUD&&CS.authReady&&!CS.user&&!CS.guest&&!document.body.classList.contains('gated'))openAuth()}
+function openAuth(){
+  if($('#m-auth').hidden===false)return;
+  setAuMode('in');$('#auErr').textContent='';openModal($('#m-auth'));
+}
+function closeAuth(){CS.force=true;closeModal($('#m-auth'));CS.force=false}
+function setAuMode(m){
+  CS.mode=m;$$('#m-auth [data-aumode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.aumode===m));
+  $('#auNameW').hidden=m!=='up';$('#auGo').textContent=m==='up'?'Create my library':'Sign in';
+  $('#auPw').autocomplete=m==='up'?'new-password':'current-password';$('#auForgot').hidden=m==='up';
+  $('#auSub').textContent=m==='up'?'Make an account and you get a private library of your own. You can share it with anyone you choose.':'Sign in to open your own library, or create an account. It is free.';
+}
+function authMsg(e){
+  const c=(e&&e.code)||'';
+  if(/invalid-credential|wrong-password|user-not-found|invalid-login/.test(c))return'That email and password do not match. Check them, or choose Create account.';
+  if(/email-already-in-use/.test(c))return'That email already has an account. Choose Sign in instead.';
+  if(/weak-password/.test(c))return'Please use a password of at least 6 characters.';
+  if(/invalid-email/.test(c))return'That email address does not look right.';
+  if(/too-many-requests/.test(c))return'Too many tries. Please wait a few minutes and try again.';
+  if(/network/.test(c))return'No internet connection. Please try again when you are online.';
+  if(/operation-not-allowed/.test(c))return'Email sign-in is not switched on yet in the Firebase project (see the setup guide).';
+  return'Something went wrong. Please try again.';
+}
+$('#auForm').addEventListener('submit',async e=>{
+  e.preventDefault();const em=$('#auEmail').value.trim(),pw=$('#auPw').value,err=$('#auErr');err.className='au-err';err.textContent='';
+  if(!em||!pw){err.textContent='Please enter your email and password.';return}
+  const b=$('#auGo');b.disabled=true;
+  try{if(CS.mode==='up')await C.signUp(em,pw,$('#auName').value.trim());else await C.signIn(em,pw)}
+  catch(x){err.textContent=authMsg(x)}
+  b.disabled=false;
+});
+$('#auForgot').onclick=async()=>{
+  const em=$('#auEmail').value.trim(),err=$('#auErr');err.className='au-err';
+  if(!em){err.textContent='Type your email above first, then press Forgot password.';return}
+  try{await C.resetPassword(em);err.className='au-err ok';err.textContent='A reset link has been sent to '+em+'. Check your inbox and spam.'}catch(x){err.textContent=authMsg(x)}
+};
+$('#auGuest').onclick=()=>{
+  CS.guest=true;detach();S.col=localCollection();S.local=true;S.canWrite=true;S.role='';S.name='';
+  $('#who').hidden=false;$('#whoTxt').textContent='This device only';
+  document.body.classList.remove('readonly');attach(S.col);closeAuth();renderAcct();renderAll();greet();
+};
+document.addEventListener('click',e=>{const m=e.target.closest('[data-aumode]');if(m&&m.closest('#m-auth'))setAuMode(m.dataset.aumode)});
+
+function cloudBoot(){
+  try{C.init(window.RR_FIREBASE)}catch(e){toast('The cloud settings in config.js are not valid.');return}
+  S.cloud=true;S.canWrite=false;$('#acct').hidden=false;renderAcct();
+  C.onAuth(u=>{
+    CS.authReady=true;
+    if(u){CS.user=u;startAccount(u)}
+    else{if(CS.user){CS.user=null;stopAccount()}CS.user=null;renderAcct();needAuth()}
+  });
+}
+function startAccount(u){
+  CS.guest=false;S.name=(u.name||u.email.split('@')[0]).split(' ')[0];S.local=false;
+  if($('#m-auth').hidden===false)closeAuth();
+  try{CS.unsub&&CS.unsub()}catch(e){}
+  CS.unsub=C.watchLibraries(u,async list=>{
+    CS.libs=list;const mine=list.filter(l=>!l.pending);
+    if(!mine.length){
+      if(!CS.creating){CS.creating=true;try{await C.createLibrary(u,'My library')}catch(e){toast('Your library could not be created. Check the Firebase rules in the setup guide.')}CS.creating=false}
+      renderAcct();return;
+    }
+    let want=CS.cur;if(!mine.some(l=>l.id===want))want=store.get('rr-lib-'+u.uid,null);if(!mine.some(l=>l.id===want))want=mine[0].id;
+    if(want!==CS.attached)selectLib(want);else refreshRole();
+    renderAcct();
+  },e=>{toast('Your libraries could not be loaded. Check your connection and the Firebase rules.')});
+  renderAcct();
+}
+function stopAccount(){
+  try{CS.unsub&&CS.unsub()}catch(e){}CS.unsub=null;CS.libs=[];CS.cur=null;CS.attached=null;detach();
+  S.canWrite=false;S.role='';$('#who').hidden=true;closeModal($('#m-acct'));renderAll();needAuth();
+}
+function selectLib(id){
+  const l=CS.libs.find(x=>x.id===id&&!x.pending);if(!l)return;
+  CS.cur=id;CS.attached=id;store.set('rr-lib-'+CS.user.uid,id);
+  detach();S.col=C.booksCol(id);refreshRole();attach(S.col);renderAll();greet();
+}
+function refreshRole(){
+  const l=curLib();if(!l)return;
+  S.canWrite=l.role==='owner'||l.role==='editor';S.role=ROLE[l.role];
+  const w=$('#who');w.hidden=false;$('#whoTxt').textContent=l.name+' · '+ROLE[l.role];
+  document.body.classList.toggle('readonly',!S.canWrite);
+}
+function renderAcct(){
+  const b=$('#acct');if(!b)return;
+  const nm=CS.user?(S.name||'Account'):(CS.guest?'Sign in':'Sign in');
+  b.innerHTML=`<span class="dot">${esc((CS.user?(S.name||CS.user.email):'?').charAt(0).toUpperCase())}</span><span class="t">${esc(nm)}</span>`;
+  if(!$('#m-acct').hidden)drawAcct();
+}
+const emailOk=s=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
+function seedDocs(){const base=Date.now()-SEED.length*1000;return SEED.map((r,i)=>({id:C.newId(),title:r[0],author:r[1],genre:r[2],description:r[3],status:'yet',fav:false,cover:'',addedAt:base+i*1000}))}
+function drawAcct(){
+  const u=CS.user,l=curLib();
+  $('#acSub').textContent=u?`Signed in as ${u.email}`:'You are using Bibliotheca on this device only.';
+  let h='';
+  if(!u){
+    h+=`<div class="ac-sec"><p class="ac-note">Your books are saved in this browser only. Sign in to keep them safe in your own library and share them.</p><button class="btn solid" data-act="signin">Sign in or create an account</button></div>`;
+    $('#acBody').innerHTML=h;return;
+  }
+  const pend=CS.libs.filter(x=>x.pending);
+  if(pend.length)h+=`<div class="ac-sec"><h3>Invitations</h3>${pend.map(x=>`<div class="invrow"><span class="nm"><b>${esc(x.name)}</b><br><small>From ${esc(x.ownerEmail||'someone')} · ${ROLE[x.role]}</small></span><button class="btn solid" data-act="accept" data-id="${esc(x.id)}">Accept</button></div>`).join('')}</div>`;
+  h+=`<div class="ac-sec"><h3>Your libraries</h3>${CS.libs.filter(x=>!x.pending).map(x=>`<button class="libpick" data-act="pick" data-id="${esc(x.id)}" aria-pressed="${x.id===CS.cur}"><span>${esc(x.name)}${x.role!=='owner'?`<br><small>Shared with you</small>`:''}</span><small>${ROLE[x.role]}</small></button>`).join('')}
+   <div class="ac-row"><input id="newLibName" maxlength="60" placeholder="Name a new library" aria-label="New library name"><button class="btn" data-act="newlib">Create</button></div></div>`;
+  if(l&&l.role==='owner'){
+    const mem=Object.keys(l.members||{}),invs=l.inviteEmails||[];
+    h+=`<div class="ac-sec"><h3>Share “${esc(l.name)}”</h3>
+     <p class="ac-note">Invite someone by the email they sign up with. They can read your books, or edit them if you allow it. Each of you still has your own libraries.</p>
+     <div class="invrow"><input id="invEmail" type="email" inputmode="email" placeholder="friend@example.com" aria-label="Email to invite"><select id="invRole" aria-label="Access"><option value="viewer">Can read</option><option value="editor">Can edit</option></select><button class="btn solid" data-act="invite">Invite</button></div>
+     ${mem.map(uid=>`<div class="mem"><span class="nm">${esc((l.memberNames||{})[uid]||'Member')}${uid===u.uid?' (you)':''}</span>${uid===l.ownerId?'<small>Owner</small>':`<select data-act="role" data-uid="${esc(uid)}" aria-label="Access">${['viewer','editor'].map(r=>`<option value="${r}" ${l.members[uid]===r?'selected':''}>${ROLE[r]}</option>`).join('')}</select><button class="btn ghost" data-act="remove" data-uid="${esc(uid)}">Remove</button>`}</div>`).join('')}
+     ${invs.map(em=>`<div class="mem"><span class="nm">${esc(em)}<br><small>Waiting to accept · ${ROLE[(l.invites||{})[em.replace(/\./g,',')]||'viewer']}</small></span><button class="btn ghost" data-act="uninvite" data-em="${esc(em)}">Cancel</button></div>`).join('')}
+    </div>
+    <div class="ac-sec"><h3>This library</h3><div class="ac-row"><input id="renLib" maxlength="60" value="${esc(l.name)}" aria-label="Library name"><button class="btn" data-act="rename">Rename</button></div>
+     <div class="ac-row"><button class="btn danger" data-act="delete">Delete this library</button></div></div>`;
+  }else if(l){
+    h+=`<div class="ac-sec"><h3>This library</h3><p class="ac-note">${esc(l.name)} belongs to someone else.</p><button class="btn danger" data-act="leave">Leave this library</button></div>`;
+  }
+  if(l&&S.canWrite&&!S.books.length)h+=`<div class="ac-sec"><h3>Getting started</h3><p class="ac-note">New libraries start empty. Add books yourself, import an Excel file, or try the 69-book sample catalogue.</p><button class="btn" data-act="sample">Add the sample catalogue</button></div>`;
+  h+=`<div class="ac-sec"><button class="btn" data-act="signout">Sign out</button></div>`;
+  $('#acBody').innerHTML=h;
+}
+let delArm=0;
+document.addEventListener('change',async e=>{
+  const t=e.target;if(!(t.matches&&t.matches('select[data-act="role"]')))return;
+  const l=curLib();if(!l)return;
+  try{await C.setRole(l.id,l,t.dataset.uid,t.value);toast('Access updated.')}catch(x){toast('That could not be changed.')}
+});
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('#m-acct [data-act]');if(!t)return;
+  const act=t.dataset.act,l=curLib(),u=CS.user;
+  try{
+    if(act==='signin'){closeModal($('#m-acct'));CS.guest=false;detach();openAuth();return}
+    if(act==='signout'){await C.signOut();return}
+    if(act==='pick'){selectLib(t.dataset.id);drawAcct();closeModal($('#m-acct'));return}
+    if(act==='accept'){const x=CS.libs.find(z=>z.id===t.dataset.id);if(x){await C.accept(x.id,x,u);CS.cur=x.id;toast('Joined “'+x.name+'”.')}return}
+    if(act==='newlib'){const n=$('#newLibName').value.trim();if(!n){toast('Give the new library a name.');return}const id=await C.createLibrary(u,n);CS.cur=id;toast('Library created.');return}
+    if(!l)return;
+    if(act==='invite'){const em=$('#invEmail').value.trim().toLowerCase();if(!emailOk(em)){toast('That email does not look right.');return}if(em===u.email){toast('That is your own email.');return}
+      await C.invite(l.id,l,em,$('#invRole').value);toast('Invitation saved. They will see it when they sign in with '+em+'.');return}
+    if(act==='uninvite'){await C.uninvite(l.id,l,t.dataset.em);return}
+    if(act==='remove'){await C.removeMember(l.id,l,t.dataset.uid);toast('Removed.');return}
+    if(act==='rename'){const n=$('#renLib').value.trim();if(n){await C.renameLibrary(l.id,n);toast('Renamed.')}return}
+    if(act==='leave'){await C.leave(l.id,l,u);CS.cur=null;CS.attached=null;toast('You left the library.');return}
+    if(act==='delete'){
+      if(Date.now()-delArm>4000){delArm=Date.now();t.textContent='Press again to delete it for good';return}
+      await C.deleteLibrary(l.id);CS.cur=null;CS.attached=null;toast('Library deleted.');return}
+    if(act==='sample'){t.disabled=true;await C.batchSet(l.id,seedDocs());toast('Sample catalogue added.');drawAcct();return}
+  }catch(x){toast('That did not work. You may not have permission, or you are offline.')}
+});
+document.addEventListener('click',e=>{if(e.target.closest('#acct')){drawAcct();openModal($('#m-acct'))}});
+
+
+/* ---------- shelf creatures (original artwork, one per shelf) ---------- */
+const CR={
+ROM:['Two little wizards in love','<g class="cr-bob"><path d="M24 90 L21 62 Q33 56 45 62 L43 90Z" fill="#2c3f8f"/><circle cx="33" cy="54" r="8" fill="#f1d3b0"/><path d="M22 50 Q33 12 44 50Z" fill="#1f2b6e"/><path d="M20 51H46" stroke="#d6b25a" stroke-width="3"/><circle cx="30.5" cy="54" r="1.2" fill="#2a1a10"/><circle cx="36" cy="54" r="1.2" fill="#2a1a10"/><path d="M57 90 L55 62 Q67 56 79 62 L76 90Z" fill="#7b2a62"/><circle cx="67" cy="54" r="8" fill="#f1d3b0"/><path d="M56 50 Q68 10 80 50Z" fill="#3b1850"/><path d="M54 51H82" stroke="#d6b25a" stroke-width="3"/><circle cx="64.5" cy="54" r="1.2" fill="#2a1a10"/><circle cx="70" cy="54" r="1.2" fill="#2a1a10"/><path d="M42 74 Q50 70 58 74" stroke="#f1d3b0" stroke-width="4" stroke-linecap="round" fill="none"/><g class="cr-pulse" transform="translate(50 26)"><path d="M0 8C-12-6-24 6-13 15L0 27 13 15C24 6 12-6 0 8Z" fill="#ff5c8a" transform="scale(.55)"/></g></g>','Love is in the air…'],
+HOR:['A friendly ghost','<g class="cr-float"><path d="M24 84V44C24 24 36 12 50 12S76 24 76 44V84L67 75 59 84 50 75 41 84 33 75Z" fill="#e9edff" fill-opacity=".92"/><path d="M25 52Q10 46 8 32M75 52Q90 46 92 32" stroke="#e9edff" stroke-opacity=".92" stroke-width="8" stroke-linecap="round" fill="none"/><ellipse cx="40" cy="42" rx="5" ry="7.5" fill="#1b2050"/><ellipse cx="60" cy="42" rx="5" ry="7.5" fill="#1b2050"/><ellipse cx="50" cy="60" rx="6" ry="8" fill="#1b2050"/><circle cx="38.5" cy="40" r="1.6" fill="#fff"/><circle cx="58.5" cy="40" r="1.6" fill="#fff"/></g>','Boooo! Care for a chill?'],
+FSM:['A baby dragon','<g class="cr-bob"><path class="cr-wing" d="M58 52 L90 20 L84 56 L74 50 L72 66Z" fill="#2f8f6a"/><path d="M26 72C8 74 8 90 24 84" stroke="#3fb283" stroke-width="9" fill="none" stroke-linecap="round"/><ellipse cx="48" cy="66" rx="23" ry="19" fill="#3fb283"/><ellipse cx="48" cy="72" rx="12" ry="11" fill="#f0dfa0"/><circle cx="42" cy="40" r="17" fill="#3fb283"/><ellipse cx="31" cy="47" rx="10" ry="7" fill="#47c093"/><path d="M34 27L29 12 41 24ZM48 25L53 10 54 27Z" fill="#e6c874"/><circle cx="39" cy="37" r="4" fill="#fff6c0"/><circle cx="38" cy="37" r="1.8" fill="#1b2050"/><path class="cr-flame" d="M22 46Q10 38 4 46 12 50 22 52Z" fill="#ffb35c"/></g>','Rawr! Mind the fire.'],
+CRM:['A watchful raven','<g class="cr-tilt"><path d="M12 82H88" stroke="#5a4630" stroke-width="5" stroke-linecap="round"/><path d="M60 52Q86 54 92 80 70 72 56 72Z" fill="#12152c"/><ellipse cx="50" cy="58" rx="20" ry="22" fill="#1c2038"/><circle cx="42" cy="34" r="14" fill="#1c2038"/><path d="M30 32L14 38 30 41Z" fill="#d6b25a"/><circle cx="40" cy="31" r="3.4" fill="#ffe08a"/><circle cx="40" cy="31" r="1.3" fill="#000"/><path d="M42 48Q52 56 62 48" stroke="#323a66" fill="none" stroke-width="2"/><path d="M44 80v5M55 80v5" stroke="#d6b25a" stroke-width="2.4"/></g>','Nevermore… I see everything.'],
+YAD:['A young witch on a broom','<g class="cr-fly"><path d="M8 70L90 58" stroke="#7b5a34" stroke-width="4.5" stroke-linecap="round"/><path d="M88 57L99 49 100 60 98 69Z" fill="#d6b25a"/><path d="M38 66L40 44Q52 40 60 46L58 64Z" fill="#7b2a62"/><circle cx="50" cy="34" r="9" fill="#f1d3b0"/><path d="M38 31Q50 4 62 31Z" fill="#3b1850"/><path d="M36 32H64" stroke="#d6b25a" stroke-width="3"/><circle cx="47" cy="35" r="1.3" fill="#2a1a10"/><circle cx="54" cy="35" r="1.3" fill="#2a1a10"/><path d="M52 50L72 54" stroke="#f1d3b0" stroke-width="4" stroke-linecap="round"/><path d="M36 20q-8 4-6 12" stroke="#c9a0ff" stroke-width="3" fill="none" stroke-linecap="round"/></g>','Wheee! Up we go!'],
+CLS:['A scholarly owl','<g class="cr-bob"><ellipse cx="50" cy="60" rx="25" ry="28" fill="#8a6038"/><ellipse cx="50" cy="68" rx="15" ry="18" fill="#e9d6a8"/><path d="M28 36L24 16 40 28ZM72 36L76 16 60 28Z" fill="#8a6038"/><circle cx="50" cy="40" r="23" fill="#a2754a"/><circle cx="40" cy="40" r="10" fill="#f6ecd0"/><circle cx="60" cy="40" r="10" fill="#f6ecd0"/><circle class="cr-blink" cx="40" cy="40" r="4.5" fill="#1b2050"/><circle class="cr-blink" cx="60" cy="40" r="4.5" fill="#1b2050"/><circle cx="60" cy="40" r="12" fill="none" stroke="#d6b25a" stroke-width="2.4"/><path d="M60 52Q64 62 60 70" stroke="#d6b25a" fill="none"/><path d="M46 48L50 56 54 48Z" fill="#d6b25a"/><path d="M30 86H70" stroke="#5a4630" stroke-width="5" stroke-linecap="round"/></g>','Hoo… well read, indeed.'],
+HLT:['A self-writing quill','<g class="cr-bob"><path d="M18 22H70Q82 22 82 34V78H30Q18 78 18 66Z" fill="#ecdcb4" stroke="#b9a070" stroke-width="2"/><path d="M26 38H72M26 48H72M26 58H58" stroke="#8a6c40" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 3"/><g class="cr-write"><path d="M90 8L52 66" stroke="#f5efe0" stroke-width="5" stroke-linecap="round"/><path d="M90 8Q70 14 62 38" stroke="#c9bfff" stroke-width="3" fill="none"/><path d="M52 66L49 74 57 69Z" fill="#d6b25a"/></g></g>','Every story gets written.'],
+PHI:['A crystal ball','<g class="cr-bob"><path d="M30 90Q50 80 70 90V96H30Z" fill="#8a6c2c"/><circle cx="50" cy="50" r="31" fill="url(#cb)"/><defs><radialGradient id="cb" cx=".35" cy=".3"><stop offset="0" stop-color="#e6dcff"/><stop offset=".5" stop-color="#7a64d6"/><stop offset="1" stop-color="#2a1d6e"/></radialGradient></defs><g class="cr-spin"><path d="M50 30l3 8 8 1-6 6 2 9-7-5-7 5 2-9-6-6 8-1Z" fill="#f6e3a4"/><circle cx="34" cy="60" r="2" fill="#fff"/><circle cx="68" cy="44" r="1.6" fill="#fff"/></g><ellipse cx="38" cy="34" rx="8" ry="4" fill="#fff" fill-opacity=".45" transform="rotate(-30 38 34)"/></g>','The answer lies within…'],
+SLF:['A rising firebird','<g class="cr-bob"><path d="M50 92C40 80 34 70 40 58L50 66 60 58C66 70 60 80 50 92Z" fill="#ff7a2e"/><path class="cr-wing" d="M44 56C24 54 8 40 6 22 24 28 38 34 46 46Z" fill="#ffb347"/><path class="cr-wing2" d="M56 56C76 54 92 40 94 22 76 28 62 34 54 46Z" fill="#ffb347"/><ellipse cx="50" cy="52" rx="11" ry="15" fill="#ff5a2e"/><circle cx="50" cy="34" r="9" fill="#ff7a2e"/><path d="M50 14L46 26 54 26Z" fill="#ffd36e"/><path d="M58 34L68 36 58 40Z" fill="#ffd36e"/><circle cx="53" cy="32" r="2" fill="#2a1005"/><path d="M42 80Q34 92 30 98M58 80Q66 92 70 98M50 84Q50 94 50 100" stroke="#ffd36e" stroke-width="3" fill="none" stroke-linecap="round"/></g>','From the ashes, again.'],
+POE:['A moon pixie','<g class="cr-float"><path class="cr-wing" d="M50 46C26 32 14 40 18 56 30 62 44 56 50 50Z" fill="#c9bfff" fill-opacity=".7"/><path class="cr-wing2" d="M50 46C74 32 86 40 82 56 70 62 56 56 50 50Z" fill="#c9bfff" fill-opacity=".7"/><path d="M44 52L56 52 60 78 40 78Z" fill="#7b4fd0"/><circle cx="50" cy="40" r="9" fill="#f1d3b0"/><path d="M41 38Q50 24 59 38 52 32 41 38Z" fill="#f6e3a4"/><circle cx="47" cy="41" r="1.2" fill="#2a1a10"/><circle cx="53" cy="41" r="1.2" fill="#2a1a10"/><path d="M62 54L80 40" stroke="#d6b25a" stroke-width="2.6" stroke-linecap="round"/><path class="cr-star" d="M82 30l2 6 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1Z" fill="#fff2b0"/></g>','A verse for the moon.'],
+CON:['A bubbling cauldron','<g class="cr-bob"><path d="M22 54Q20 90 50 92 80 90 78 54Z" fill="#1c2038"/><ellipse cx="50" cy="54" rx="29" ry="9" fill="#12152c"/><ellipse cx="50" cy="54" rx="24" ry="6.5" fill="#4ad59a"/><path d="M26 92L20 98M74 92L80 98" stroke="#1c2038" stroke-width="5" stroke-linecap="round"/><circle class="cr-bub b1" cx="42" cy="48" r="4" fill="#8ff0c4"/><circle class="cr-bub b2" cx="56" cy="50" r="3" fill="#8ff0c4"/><circle class="cr-bub b3" cx="50" cy="46" r="2.4" fill="#c8ffe6"/><path class="cr-steam" d="M40 34Q34 24 42 16M58 34Q64 22 56 12" stroke="#bff6dc" stroke-opacity=".6" stroke-width="3" fill="none" stroke-linecap="round"/></g>','Stirring up a good story.'],
+UNV:['A curious wisp','<g class="cr-float"><path d="M50 12C70 36 78 50 70 66 64 78 36 78 30 66 22 50 30 36 50 12Z" fill="#9fe4ff" fill-opacity=".85"/><path d="M50 30C60 46 64 54 58 64 54 70 46 70 42 64 36 54 40 46 50 30Z" fill="#e8fbff"/><circle cx="44" cy="58" r="2.6" fill="#1b2050"/><circle cx="56" cy="58" r="2.6" fill="#1b2050"/></g>','I wonder what this one is…'],
+OTH:['A star sprite','<g class="cr-bob"><path class="cr-spin" d="M50 8l11 24 26 3-19 18 5 26-23-13-23 13 5-26-19-18 26-3Z" fill="#f6e3a4" stroke="#d6b25a" stroke-width="2"/><circle cx="43" cy="46" r="2.6" fill="#1b2050"/><circle cx="57" cy="46" r="2.6" fill="#1b2050"/><path d="M44 56Q50 62 56 56" stroke="#1b2050" stroke-width="2" fill="none" stroke-linecap="round"/></g>','Twinkle, twinkle.']
+};
+function critter(ab){const c=CR[ab];if(!c)return'';return`<span class="critter" aria-hidden="true" data-say="${esc(c[2])}" title="${esc(c[0])}"><svg viewBox="0 0 100 100" focusable="false">${c[1]}</svg></span>`}
+document.addEventListener('click',e=>{const c=e.target.closest('.critter');if(!c)return;$$('.critter.say').forEach(x=>{if(x!==c)x.classList.remove('say')});c.classList.add('jump','say');setTimeout(()=>c.classList.remove('jump'),700);clearTimeout(c._t);c._t=setTimeout(()=>c.classList.remove('say'),2600)});
+
+/* ---------- castle hall background ---------- */
+(function(){
+  const el=document.createElement('div');el.id='castle';el.setAttribute('aria-hidden','true');
+  el.innerHTML='<i class="cw" style="--x:12%"></i><i class="cw mid" style="--x:50%"></i><i class="cw" style="--x:88%"></i><i class="mist m1"></i><i class="mist m2"></i>';
+  document.body.insertBefore(el,document.body.firstChild);
+})();
+
+/* ---------- formats owned (physical / ebook / pdf) ---------- */
+const FMT=[['physical','Physical copy'],['ebook','eBook'],['pdf','PDF']];
+const FMTL=Object.fromEntries(FMT);
+function drawFmt(){
+  $('#fFormat').innerHTML=FMT.map(([k,l])=>`<label><input type="checkbox" name="ff" value="${k}" ${(F.fmt||[]).includes(k)?'checked':''}>${l}</label>`).join('');
+}
+$('#fFormat').addEventListener('change',()=>{F.fmt=$$('#fFormat input:checked').map(x=>x.value)});
+function fmtChips(b){const f=(b.format||[]).filter(k=>FMTL[k]);return f.length?`<div class="tg fmt">${f.map(k=>`<span>${FMTL[k]}</span>`).join('')}</div>`:''}
+
+/* ---------- wish list ---------- */
+const wishKey=(t,a)=>(String(t||'').trim()+'|'+String(a||'').trim()).toLowerCase();
+const wishSame=(w,t,a)=>String(w.title||'').trim().toLowerCase()===String(t||'').trim().toLowerCase();
+function wishClear(title,author){
+  (S.wish||[]).filter(w=>wishSame(w,title,author)).forEach(w=>{S.col.doc(w.id).delete().catch(()=>{});S.wish=S.wish.filter(x=>x.id!==w.id)});
+  drawWish();
+}
+let wishOpenId=null,wishFmt=[];
+function drawWish(){
+  const PR={high:0,normal:1,low:2},W=[...(S.wish||[])].sort((a,b)=>(PR[a.prio||'normal']-PR[b.prio||'normal'])||(b.wishAt||0)-(a.wishAt||0)),n=$('#wishN');
+  if(n)n.textContent=W.length?W.length:'';
+  const box=$('#wishList');if(!box)return;
+  $('#wishForm').hidden=!S.canWrite;
+  if(!W.length){box.innerHTML='<div class="wish-empty"><b>Nothing on the list yet</b><span>Add a title above. It waits here until you buy it.</span></div>';return}
+  box.innerHTML=W.map(w=>{
+    const open=wishOpenId===w.id;
+    return `<div class="wish${open?' open':''}" data-wid="${esc(w.id)}"><div class="w-main"><div class="w-t"><b>${esc(w.title)}</b><span>${esc(w.author||'Author not added')}</span><span class="w-chips">${w===W[0]&&w.prio==='high'?'<em class="nx">Next to buy</em>':w.prio==='high'?'<em class="hi">High priority</em>':w.prio==='low'?'<em>Low priority</em>':''}${w.price?`<em>${esc(w.price)}</em>`:''}${w.link&&safeUrl(w.link)?`<a href="${esc(w.link)}" target="_blank" rel="noopener">Buy link</a>`:''}</span></div>${S.canWrite?`<button type="button" class="btn solid sm" data-wbuy>${open?'Cancel':'Bought'}</button><button type="button" class="iconbtn sm" data-wdel aria-label="Remove ${esc(w.title)} from the wish list">${IC.bin}</button>`:''}</div>
+    ${open?`<div class="w-buy"><p>Which copy did you get?</p><div class="w-fmts">${FMT.map(([k,l])=>`<button type="button" class="chip" data-wf="${k}" aria-pressed="${wishFmt.includes(k)}">${l}</button>`).join('')}</div><button type="button" class="btn solid" data-wmove ${wishFmt.length?'':'disabled'}>Move to my library</button></div>`:''}</div>`;
+  }).join('');
+}
+async function wishLookup(title,author){
+  const o={genre:'',description:'',cover:''};
+  try{
+    const q='intitle:'+encodeURIComponent(title)+(author?'+inauthor:'+encodeURIComponent(author):'');
+    const j=await getJson('https://www.googleapis.com/books/v1/volumes?q='+q+'&maxResults=1',6000),v=j.items&&j.items[0]&&j.items[0].volumeInfo;
+    if(v){o.genre=(v.categories||[]).join('; ');o.description=v.description||'';o.author=(v.authors||[]).join(', ')}
+  }catch(e){}
+  return o;
+}
+$('#wishForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(!guard())return;
+  const title=$('#wTitle').value.trim(),author=$('#wAuthor').value.trim();
+  if(!title){$('#wTitle').focus();return}
+  if((S.wish||[]).some(w=>wishSame(w,title,author))){toast('That title is already on your wish list.');return}
+  if(S.books.some(b=>wishSame(b,title,author))){toast('You already own a book with that title.');return}
+  const price=$('#wPrice').value.trim().slice(0,30),lk=$('#wLink').value.trim(),prio=$('#wPrio').value,id=newId(),data={wish:true,title,author,price,link:(lk&&safeUrl(lk))?lk:'',prio,wishAt:Date.now(),genre:'',description:'',status:'yet',cover:'',tone:''};
+  try{await dbRetry(()=>S.col.doc(id).set(data));if(!(S.wish||[]).some(w=>w.id===id))S.wish=[...(S.wish||[]),{...data,id}];$('#wTitle').value='';$('#wAuthor').value='';$('#wPrice').value='';$('#wLink').value='';$('#wPrio').value='normal';drawWish();$('#wTitle').focus()}
+  catch(err){toast('That could not be saved. Try again.')}
+});
+$('#wishList').addEventListener('click',async e=>{
+  const row=e.target.closest('.wish');if(!row)return;const id=row.dataset.wid,w=(S.wish||[]).find(x=>x.id===id);if(!w)return;
+  if(e.target.closest('[data-wbuy]')){wishOpenId=wishOpenId===id?null:id;wishFmt=[];drawWish();return}
+  const f=e.target.closest('[data-wf]');
+  if(f){const k=f.dataset.wf;wishFmt=wishFmt.includes(k)?wishFmt.filter(x=>x!==k):[...wishFmt,k];drawWish();return}
+  if(e.target.closest('[data-wdel]')){
+    if(!guard())return;
+    try{await dbRetry(()=>S.col.doc(id).delete());S.wish=S.wish.filter(x=>x.id!==id);drawWish();
+      toast(`Removed “${w.title}”.`,{action:'Undo',ttl:7000,fn:async()=>{try{await S.col.doc(id).set(w);S.wish=[...(S.wish||[]),w];drawWish()}catch(x){}}})}
+    catch(err){toast('That could not be removed.')}
+    return;
+  }
+  if(e.target.closest('[data-wmove]')){
+    if(!guard()||!wishFmt.length)return;
+    const btn=e.target.closest('[data-wmove]');btn.disabled=true;btn.textContent='Shelving…';
+    const info=await wishLookup(w.title,w.author);
+    const upd={wish:false,format:wishFmt.slice(),addedAt:Date.now(),status:'yet',fav:false,genre:w.genre||info.genre||'',description:w.description||info.description||'',author:w.author||info.author||''};
+    try{
+      await dbRetry(()=>S.col.doc(id).update(upd));
+      S.wish=S.wish.filter(x=>x.id!==id);
+      const nb={...w,...upd,id};if(!get(id))S.books.push(nb);
+      wishOpenId=null;wishFmt=[];
+      S.f.status='all';S.f.genre='all';S.f.q='';$('#q').value='';
+      S.justAdded=id;drawWish();renderAll();closeModal($('#m-wish'));
+      wSay(`“${nb.title}” is on the shelf. Shelved under ${shelfOf(nb).key}.`,8000);
+      if(!nb.genre)setTimeout(()=>toast('Moved to Other Shelves. Edit the book to give it a genre.',{ttl:6000}),900);
+    }catch(err){toast('That could not be moved. Try again.');drawWish()}
+  }
+});
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-wish]')){wishOpenId=null;drawWish();openModal($('#m-wish'))}
+});
+
+/* ---------- spines: monochrome bodies, vibrant borders ---------- */
+const MONO=['#12141a','#181b23','#1f222b','#262a34','#0e1a26','#1b1620','#16201e','#2b2d33'];
+const VIB=['#ff2e63','#08e4e0','#ffb400','#8c5bff','#19f07a','#ff6d1f','#3d8bff','#ff4fb0','#d4ff3a'];
+const MONOL=['#e9e3d3','#dcd8cc','#cfd3d8'],VIBD=['#c2123f','#005fd6','#b84600','#6a1fc2','#007a4d'];
+function spinePal(b){
+  const th=store.get('rr-spine','mono');
+  if(th==='jewel')return palOf(b);
+  if(th==='parchment'){const hh=hash((b.title||'')+'|'+(b.author||'')),bg=['#ece4cf','#e2d8bc','#e8dfc8','#d9d2bd'][hh%4];return{bg,bg2:shade(bg,.8),ink:'#2a2118',acc:VIBD[(hh>>4)%VIBD.length]}}
+  const h=hash((b.title||'')+'|'+(b.author||'')),k=h%11;
+  if(k>=9){const bg=MONOL[h%MONOL.length];return{bg,bg2:shade(bg,.78),ink:'#15161a',acc:VIBD[(h>>4)%VIBD.length]}}
+  const bg=MONO[h%MONO.length];return{bg,bg2:shade(bg,.6),ink:'#f2efe6',acc:VIB[(h>>4)%VIB.length]};
+}
+const spOver=e=>e.scrollHeight>e.clientHeight+1||e.scrollWidth>e.clientWidth+1;
+function fitSpines(){
+  const els=[...document.querySelectorAll('#lib .s-title')];if(!els.length)return;
+  let todo=els.filter(spOver),n=0;
+  while(todo.length&&n++<14){todo.forEach(e=>{e.style.fontSize=Math.max(6.2,parseFloat(e.style.fontSize||getComputedStyle(e).fontSize)*.92)+'px'});todo=todo.filter(e=>parseFloat(e.style.fontSize)>6.3&&spOver(e))}
+}
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{try{renderAll()}catch(e){}});
+
+/* ===================== v8: notes, goals, series, shelves, stats, reader extras ===================== */
+const YEAR=new Date().getFullYear();
+const starsHTML=(n,cls='')=>`<span class="stars ${cls}" aria-label="${n} out of 5 stars">${[1,2,3,4,5].map(i=>`<i class="${i<=n?'on':''}">★</i>`).join('')}</span>`;
+const finishedMs=b=>b.finishedAt||(st(b)==='read'?b.statusAt:0)||0;
+const dur=s=>{const m=Math.round(s/60);return m<1?'under a minute':m<60?m+' min':Math.floor(m/60)+' h '+(m%60?m%60+' min':'')};
+const toDay=ms=>ms?new Date(ms).toISOString().slice(0,10):'';
+const fromDay=v=>v?new Date(v+'T12:00:00').getTime():0;
+function stDates(b,status){
+  const p={};
+  if(status==='reading'&&!b.startedAt){p.startedAt=Date.now()}
+  if(status==='read'){p.finishedAt=Date.now();if(!b.startedAt)p.startedAt=b.statusAt||Date.now()}
+  if(status==='yet'){/* keep history */}
+  Object.assign(b,p);store.set('rr-last',Date.now());return p;
+}
+async function saveFields(id,patch,rerender){
+  const b=get(id);if(!b||!guard())return false;
+  const prev={};Object.keys(patch).forEach(k=>prev[k]=b[k]);Object.assign(b,patch);
+  try{await dbRetry(()=>S.col.doc(id).update(patch));if(rerender)renderAll();return true}
+  catch(e){Object.assign(b,prev);toast('That change could not be saved. Try again.');renderAll();return false}
+}
+
+/* ---- richer badges for the hover panel ---- */
+const _fmtChips=fmtChips;
+fmtChips=function(b){
+  const bits=[];
+  if(b.rating)bits.push(starsHTML(b.rating,'sm'));
+  if(b.lentTo)bits.push(`<span class="lentb">Lent to ${esc(b.lentTo)}</span>`);
+  const p=progressOf(b);if(p&&st(b)!=='read')bits.push(`<span class="progb">${p}% read</span>`);
+  return _fmtChips(b)+(bits.length?`<div class="tg meta2">${bits.join('')}</div>`:'');
+};
+function progressOf(b){
+  if(b.page&&b.pages)return Math.min(100,Math.round(b.page/b.pages*100));
+  const v=store.get('rr-pct-'+b.id,0);return v?Math.round(v*100):0;
+}
+
+/* ---- profile: "My reading notes" ---- */
+function customShelves(){const s=new Set();S.books.forEach(b=>(b.myShelves||[]).forEach(x=>s.add(x)));return[...s].sort((a,b)=>a.localeCompare(b))}
+function similarTo(b){
+  const tg=new Set(tagsOf(b.genre));
+  return S.books.filter(x=>x.id!==b.id).map(x=>{let sc=0;if(x.author&&x.author===b.author)sc+=4;tagsOf(x.genre).forEach(t=>{if(tg.has(t))sc+=1});if(b.series&&x.series===b.series)sc+=3;if(st(x)==='yet')sc+=1;return[x,sc]}).filter(a=>a[1]>=2).sort((a,b)=>b[1]-a[1]).slice(0,4).map(a=>a[0]);
+}
+function enhanceProfile(b){
+  const root=$('#pfRight');if(!root||root.querySelector('.mynotes'))return;
+  const w=S.canWrite,dis=w?'':' disabled';
+  const sim=similarTo(b),t=store.get('rr-time-'+b.id,0),pc=progressOf(b);
+  const h=`<details class="mynotes" ${S.notesOpen===false?'':'open'}><summary>My reading notes</summary>
+  <div class="mn-grid">
+   <div class="mn-row"><label>My rating</label><div class="rate" role="group" aria-label="Rating">${[1,2,3,4,5].map(i=>`<button type="button" data-rate="${i}" aria-pressed="${(b.rating||0)>=i}" aria-label="${i} star${i>1?'s':''}"${dis}>★</button>`).join('')}</div></div>
+   <div class="mn-row"><label for="mnStart">Started</label><input type="date" id="mnStart" value="${toDay(b.startedAt)}"${dis}></div>
+   <div class="mn-row"><label for="mnEnd">Finished</label><input type="date" id="mnEnd" value="${toDay(b.finishedAt)}"${dis}></div>
+   <div class="mn-row"><label for="mnPage">Reading progress</label><div class="pgrow"><input type="number" min="0" id="mnPage" placeholder="Page" value="${b.page||''}"${dis}><span>of</span><input type="number" min="0" id="mnPages" placeholder="Pages" value="${b.pages||''}"${dis}></div>${pc?`<div class="pbar" aria-label="${pc}% read"><i style="width:${pc}%"></i></div>`:''}</div>
+   <div class="mn-row"><label for="mnSeries">Series</label><div class="pgrow"><input type="text" id="mnSeries" maxlength="80" placeholder="Series name" value="${esc(b.series||'')}"${dis}><span>No.</span><input type="number" min="0" id="mnSerNo" placeholder="1" value="${b.seriesNo||''}"${dis}></div></div>
+   <div class="mn-row"><label for="mnShelves">My shelves</label><input type="text" id="mnShelves" maxlength="120" list="mnShelfList" placeholder="Comfort reads, Re-read" value="${esc((b.myShelves||[]).join(', '))}"${dis}><datalist id="mnShelfList">${customShelves().map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div>
+   <div class="mn-row"><label for="mnLent">Lent to</label><input type="text" id="mnLent" maxlength="60" placeholder="Nobody. Type a name to lend." value="${esc(b.lentTo||'')}"${dis}>${b.lentTo&&b.lentAt?`<small>Since ${fmtDate(b.lentAt)}. Clear the name when it comes back.</small>`:''}</div>
+   <div class="mn-row wide"><label for="mnNote">My note</label><textarea id="mnNote" rows="3" maxlength="1500" placeholder="What did you think?"${dis}>${esc(b.note||'')}</textarea></div>
+   <div class="mn-row wide"><label for="mnQuote">Favourite quote</label><input type="text" id="mnQuote" maxlength="400" placeholder="A line worth keeping" value="${esc(b.quote||'')}"${dis}></div>
+  </div>
+  ${t?`<p class="mn-time">Time in the reader: <b>${dur(t)}</b></p>`:''}
+  ${sim.length?`<div class="mn-sim"><h4>More like this</h4><div class="simrow">${sim.map(x=>`<button type="button" class="minibtn" data-sim="${esc(x.id)}" aria-label="Open ${esc(x.title)}"><span class="mini">${coverHTML(x)}</span><small>${esc(x.title)}</small></button>`).join('')}</div></div>`:''}
+  </details>`;
+  const anchor=root.querySelector('.pf-meta');if(anchor)anchor.insertAdjacentHTML('beforebegin',h);
+}
+$('#m-profile').addEventListener('click',e=>{
+  const id=S.openId;if(!id)return;
+  const r=e.target.closest('[data-rate]');
+  if(r){const n=+r.dataset.rate,b=get(id);saveFields(id,{rating:(b.rating===n?0:n)},true);return}
+  const s=e.target.closest('[data-sim]');if(s){e.stopPropagation();openProfile(s.dataset.sim)}
+},true);
+$('#m-profile').addEventListener('toggle',e=>{if(e.target.classList&&e.target.classList.contains('mynotes'))S.notesOpen=e.target.open},true);
+$('#m-profile').addEventListener('change',e=>{
+  const id=S.openId,t=e.target;if(!id||!t.id||!t.id.startsWith('mn'))return;const b=get(id);if(!b)return;
+  const num=v=>{v=parseInt(v,10);return v>0?v:0};
+  const m={
+    mnStart:()=>saveFields(id,{startedAt:fromDay(t.value)},false),
+    mnEnd:()=>saveFields(id,{finishedAt:fromDay(t.value)},true),
+    mnPage:()=>saveFields(id,{page:num(t.value)},true),mnPages:()=>saveFields(id,{pages:num(t.value)},true),
+    mnSeries:()=>saveFields(id,{series:t.value.trim()},true),mnSerNo:()=>saveFields(id,{seriesNo:num(t.value)},true),
+    mnShelves:()=>saveFields(id,{myShelves:t.value.split(',').map(x=>x.trim()).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).slice(0,8)},true),
+    mnLent:()=>{const v=t.value.trim();saveFields(id,v?{lentTo:v,lentAt:b.lentTo===v&&b.lentAt?b.lentAt:Date.now()}:{lentTo:'',lentAt:0},true)},
+    mnNote:()=>saveFields(id,{note:t.value.trim()},false),mnQuote:()=>saveFields(id,{quote:t.value.trim()},false)
+  }[t.id];if(m)m();
+});
+
+/* ---- extra sort + filters + grouping ---- */
+const fmtRank=b=>{const f=b.format||[];return f.includes('physical')?0:f.includes('ebook')?1:f.includes('pdf')?2:3};
+const EXTRA_CMP={
+  rating:(a,b)=>(b.rating||0)-(a.rating||0)||(b.addedAt||0)-(a.addedAt||0),
+  finished:(a,b)=>finishedMs(b)-finishedMs(a),
+  longest:(a,b)=>(b.pages||0)-(a.pages||0),
+  format:(a,b)=>fmtRank(a)-fmtRank(b)||(a.addedAt||0)-(b.addedAt||0)
+};
+function extraFilter(b){
+  const f=S.f.fmt;if(f&&f!=='all'&&!(b.format||[]).includes(f))return false;
+  return true;
+}
+function groupsFor(list){
+  const mode=S.f.grp||'genre';
+  if(mode==='series'||mode==='mine'){
+    const m=new Map();
+    list.forEach(b=>{const ks=mode==='series'?((b.series||'').trim()?[(b.series||'').trim()]:[]):(b.myShelves||[]);ks.forEach(k=>{if(!m.has(k))m.set(k,[]);m.get(k).push(b)})});
+    const gs=[...m].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,g])=>({key:k,abbr:mode==='series'?'FSM':'PHI',items:mode==='series'?g.sort((a,b)=>(a.seriesNo||999)-(b.seriesNo||999)):g}));
+    const rest=list.filter(b=>mode==='series'?!(b.series||'').trim():!(b.myShelves||[]).length);
+    if(rest.length)gs.push({key:mode==='series'?'Not in a series':'Not on one of my shelves',abbr:'OTH',items:rest});
+    return gs;
+  }
+  return SHELVES.map(s=>({key:s.key,abbr:s.abbr,items:list.filter(b=>shelfOf(b).key===s.key),genre:true}));
+}
+function renderShelves(list,f,lib){
+  const avail=Math.max(260,(lib.clientWidth||innerWidth-32)-26-28-34);
+  let html='<div class="libflow">',i=0;const gs=groupsFor(list);
+  if((f.grp==='series'||f.grp==='mine')&&!gs.some(g=>g.abbr!=='OTH')&&list.length)html+=`<div class="grp-tip">${f.grp==='series'?'Name a series on a book (open it, then My reading notes) and it gets its own shelf here.':'Add a book to one of your own shelves (open it, then My reading notes) and the shelf appears here.'}</div>`;
+  gs.forEach(s=>{
+    const g=s.items;if(!g.length)return;
+    html+=`<div class="shelfblock" data-shelf="${esc(s.key)}" data-ab="${s.abbr}"><div class="shelfhead"><h3>${esc(s.key)}</h3><span class="label">${g.length} ${plural(g.length,'volume','volumes')}${s.genre?' · '+s.abbr:''}</span>${s.genre&&f.genre==='all'?`<button class="linkbtn" data-genre="${esc(s.key)}">Show only this shelf</button>`:''}${critter(s.abbr)}</div><div class="case">`;
+    chunkRows(g,avail).forEach((row,ri,all)=>{
+      html+=`<div class="shelfrow">${row.map(b=>{S.order.push(b.id);return bkHTML(b,i++)}).join('')}${ri===all.length-1?'<i class="bookend" aria-hidden="true"></i>':''}</div>`;
+    });
+    html+='</div></div>';
+  });
+  return html+'</div>';
+}
+/* options drawer */
+const OPT=store.get('rr-opts',{});
+S.f.grp=OPT.grp||'genre';S.f.fmt='all';
+function syncOpts(){
+  $('#optGrp').value=S.f.grp;$('#optFmt').value=S.f.fmt;$('#optSpine').value=store.get('rr-spine','mono');
+  const n=(S.f.grp!=='genre'?1:0)+(S.f.fmt!=='all'?1:0);$('#optsBtn').dataset.n=n||'';
+}
+$('#optsBtn').addEventListener('click',()=>{const o=$('#opts'),v=o.hidden;o.hidden=!v;$('#optsBtn').setAttribute('aria-expanded',v)});
+$('#optGrp').addEventListener('change',e=>{S.f.grp=e.target.value;store.set('rr-opts',{grp:S.f.grp});syncOpts();S.animNext=true;renderAll()});
+$('#optFmt').addEventListener('change',e=>{S.f.fmt=e.target.value;syncOpts();renderAll()});
+$('#optSpine').addEventListener('change',e=>{store.set('rr-spine',e.target.value);S.animNext=false;renderAll()});
+
+/* ---- dashboard extras ---- */
+function renderExtras(){
+  const B=S.books,fin=B.map(b=>[b,finishedMs(b)]).filter(a=>a[1]);
+  /* goal */
+  const goal=store.get('rr-goal-'+YEAR,0),done=fin.filter(a=>new Date(a[1]).getFullYear()===YEAR).length,pct=goal?Math.min(100,Math.round(done/goal*100)):0;
+  $('#goalBox').innerHTML=`<div class="goal-n"><b>${done}</b><span>${goal?'of '+goal:'finished'} in ${YEAR}</span></div><div class="pbar big" aria-label="${pct}% of goal"><i style="width:${pct}%"></i></div>
+   <form class="goalf" id="goalForm"><label for="goalIn">${goal?'Change goal':'Set a goal for the year'}</label><div class="pgrow"><input type="number" min="1" max="999" id="goalIn" placeholder="e.g. 24" value="${goal||''}"><button class="btn sm" type="submit">Save</button></div></form>`;
+  /* months */
+  const mk=[];for(let i=11;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);mk.push([d.getFullYear(),d.getMonth()])}
+  const cnt=mk.map(([y,m])=>fin.filter(a=>{const d=new Date(a[1]);return d.getFullYear()===y&&d.getMonth()===m}).length),mx=Math.max(1,...cnt);
+  $('#monthBox').innerHTML=fin.length?`<div class="mbars">${mk.map(([y,m],i)=>`<div class="mb" title="${new Date(y,m).toLocaleString(undefined,{month:'long',year:'numeric'})}: ${cnt[i]}"><i style="height:${cnt[i]/mx*100}%"></i><span>${new Date(y,m).toLocaleString(undefined,{month:'narrow'})}</span>${cnt[i]?`<em>${cnt[i]}</em>`:''}</div>`).join('')}</div>`:'<p class="empty-note">Mark a book as read and its month appears here.</p>';
+  /* authors */
+  const au={};B.forEach(b=>{const a=(b.author||'').trim();if(a&&!/not confidently|not legible|various/i.test(a))au[a]=(au[a]||0)+1});
+  const top=Object.entries(au).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,5),tm=top.length?top[0][1]:1;
+  $('#authBox').innerHTML=top.length?top.map(([a,n])=>`<button class="bar" data-q="${esc(a)}" title="Search for ${esc(a)}"><span class="bl">${esc(a)}</span><span class="bt"><i style="--w:${(n/tm*100).toFixed(1)}%"></i></span><span class="bn">${n}</span></button>`).join(''):'<p class="empty-note">Your most-collected authors appear here.</p>';
+  /* lent */
+  const lent=B.filter(b=>b.lentTo).sort((a,b)=>(a.lentAt||0)-(b.lentAt||0));
+  $('#lentBox').innerHTML=lent.length?lent.map(b=>`<div class="lentrow"><button class="minibtn" data-open data-id="${esc(b.id)}" style="width:42px"><span class="mini">${coverHTML(b)}</span></button><div><h4>${esc(b.title)}</h4><p>With ${esc(b.lentTo)}${b.lentAt?' since '+fmtDate(b.lentAt):''}</p></div></div>`).join(''):'<p class="empty-note">Nothing is out on loan.</p>';
+  drawNext();
+  nudge();
+}
+document.addEventListener('submit',e=>{if(e.target.id!=='goalForm')return;e.preventDefault();const v=parseInt($('#goalIn').value,10);store.set('rr-goal-'+YEAR,v>0?v:0);renderExtras();if(v>0)wSay(`Goal set: ${v} books in ${YEAR}.`,4500)});
+document.addEventListener('click',e=>{const q=e.target.closest('[data-q]');if(!q)return;S.f.q=q.dataset.q;$('#q').value=S.f.q;S.f.status='all';S.f.genre='all';renderAll();$('#library').scrollIntoView({behavior:RM?'auto':'smooth'})});
+
+/* ---- what to read next ---- */
+let nextPick=null,nextSkip=new Set();
+function pickNext(){
+  const yet=S.books.filter(b=>st(b)==='yet'&&!nextSkip.has(b.id));if(!yet.length){nextSkip.clear();return null}
+  const liked=S.books.filter(b=>(b.rating||0)>=4||b.fav||st(b)==='read');
+  const lt={},la={};liked.forEach(b=>{const w=(b.rating||3)+(b.fav?1:0);tagsOf(b.genre).forEach(t=>lt[t]=(lt[t]||0)+w);if(b.author)la[b.author]=(la[b.author]||0)+w});
+  const sc=yet.map(b=>{let s=Math.random()*2;tagsOf(b.genre).forEach(t=>s+=(lt[t]||0)*.6);s+=(la[b.author]||0)*1.2;if(b.series&&S.books.some(x=>x.series===b.series&&st(x)==='read'))s+=6;return[b,s]}).sort((a,b)=>b[1]-a[1]);
+  const b=sc[0][0];let why='A good one to start with.';
+  const lk=liked.find(x=>x.author&&x.author===b.author);
+  if(b.series&&S.books.some(x=>x.series===b.series&&st(x)==='read'))why=`Next in the ${b.series} series.`;
+  else if(lk)why=`You enjoyed “${lk.title}” by the same author.`;
+  else{const t=tagsOf(b.genre).filter(t=>lt[t]).sort((a,c)=>lt[c]-lt[a])[0];if(t)why=`You tend to enjoy ${t}.`}
+  return{b,why};
+}
+function drawNext(){
+  const box=$('#nextBox');if(!box)return;
+  if(!S.books.some(b=>st(b)==='yet')){box.innerHTML='<p class="empty-note">Everything is read or in progress. Add a book to keep going.</p>';return}
+  if(!nextPick||!get(nextPick.b.id)||st(nextPick.b)!=='yet')nextPick=null;
+  if(!nextPick){box.innerHTML='<p class="empty-note">Not sure what to read? Let the library choose from your Yet to Start books.</p><button type="button" class="btn solid" data-next>Suggest a book</button>';return}
+  const {b,why}=nextPick;
+  box.innerHTML=`<div class="nextcard"><button class="minibtn" data-open data-id="${esc(b.id)}" style="width:64px"><span class="mini">${coverHTML(b)}</span></button><div><h4>${esc(b.title)}</h4><p>${esc(b.author)}</p><p class="why">${esc(why)}</p></div></div><div class="nextact"><button type="button" class="btn" data-next>Another</button>${S.canWrite?`<button type="button" class="btn solid" data-nextstart="${esc(b.id)}">Start reading</button>`:''}</div>`;
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-next]')){if(nextPick)nextSkip.add(nextPick.b.id);nextPick=pickNext();drawNext();return}
+  const s=e.target.closest('[data-nextstart]');if(s){setStatus(s.dataset.nextstart,'reading',s);nextPick=null;drawNext()}
+});
+
+/* ---- gentle nudge ---- */
+let nudged=false;
+function nudge(){
+  if(nudged||!S.ready||!S.books.length)return;nudged=true;
+  const last=store.get('rr-last',0);store.set('rr-last',Date.now());
+  const cur=S.books.filter(b=>st(b)==='reading').sort((a,b)=>(b.statusAt||0)-(a.statusAt||0))[0];
+  if(cur&&last&&Date.now()-last>4*864e5)setTimeout(()=>wSay(`Welcome back. “${cur.title}” is waiting where you left it.`,9000),8000);
+}
+
+/* ---- finish celebration on the shelf ---- */
+const _rs=reactStatus;
+reactStatus=function(b,status,src){
+  _rs(b,status,src);
+  if(status==='read')setTimeout(()=>{const c=document.querySelector(`.shelfblock[data-shelf="${CSS.escape(shelfOf(b).key)}"] .critter`);if(c&&!RM)c.click()},500);
+};
+
+/* ---- reader: remember place, bookmarks, night mode, time ---- */
+let rdT0=0,rdBkId=null;
+function rdTimeStart(b){rdBkId=b.id;rdT0=Date.now();R.restored=false;store.set('rr-last',Date.now())}
+function rdTimeStop(){if(!rdBkId||!rdT0)return;const s=Math.round((Date.now()-rdT0)/1000);if(s>=5)store.set('rr-time-'+rdBkId,store.get('rr-time-'+rdBkId,0)+s);rdT0=0;if(S.openId)setTimeout(()=>{try{refreshProfile()}catch(e){}},50)}
+function rdRestore(b){
+  R.restored=true;const p=store.get('rr-pos-'+b.id,0);if(p>0&&p<=R.N)jump(p);rdMarks();
+}
+function rdTrack(){
+  if(!R.restored||!rdBook)return;store.set('rr-pos-'+rdBook.id,R.cur);store.set('rr-pct-'+rdBook.id,R.N?R.cur/R.N:0);rdMarks();
+}
+function rdMarks(){
+  if(!rdBook)return;const bm=store.get('rr-bm-'+rdBook.id,[]);
+  const here=bm.includes(R.cur);$('#rdBm').setAttribute('aria-pressed',here);$('#rdBm').title=here?'Remove this bookmark':'Bookmark this page';
+  $('#rdStage').classList.toggle('marked',here);
+  const box=$('#rdMarks');box.hidden=!bm.length;
+  box.innerHTML=bm.length?`<span>Bookmarks</span>`+bm.slice().sort((a,b)=>a-b).map(c=>`<button type="button" data-bmgo="${c}">${c===0?'Cover':'Page '+(R.mode==='spread'?Math.max(1,2*(c-1)):c)}</button>`).join(''):'';
+}
+$('#rdBm').addEventListener('click',()=>{
+  if(!rdBook||!R.pdf)return;let bm=store.get('rr-bm-'+rdBook.id,[]);
+  bm=bm.includes(R.cur)?bm.filter(x=>x!==R.cur):[...bm,R.cur].slice(-12);store.set('rr-bm-'+rdBook.id,bm);rdMarks();
+});
+$('#rdMarks').addEventListener('click',e=>{const b=e.target.closest('[data-bmgo]');if(b)jump(+b.dataset.bmgo)});
+const setNight=on=>{$('#m-read').classList.toggle('night',on);$('#rdNight').setAttribute('aria-pressed',on);store.set('rr-night',on)};
+$('#rdNight').addEventListener('click',()=>setNight(!$('#m-read').classList.contains('night')));
+setNight(store.get('rr-night',false));
 
 /* ---------- boot ---------- */
 applyLights();

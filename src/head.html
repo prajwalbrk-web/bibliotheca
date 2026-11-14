@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Josefin+Sans:wght@400;600&family=Special+Elite&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Josefin+Sans:wght@400;600&family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=Special+Elite&display=swap">
 <style>
 /* Layout concept: a 1980s reading room. Full-bleed shelved lobby with a lamp and an owl librarian, then a ledger (dashboard), then the shelves themselves with wooden planks. Books open like real books. */
 :root{
@@ -449,7 +449,7 @@ body.gated{overflow:hidden}
 .door.open .d-leaf{transform:rotateY(104deg);filter:brightness(.55)}
 .door.entering .d-frame{transform:scale(2.6)}
 .pn{position:absolute;border:2px solid rgba(0,0,0,.4);background:rgba(0,0,0,.14);box-shadow:inset 0 0 0 1px rgba(201,162,75,.32),inset 5px 5px 12px rgba(0,0,0,.45),1px 1px 0 rgba(255,255,255,.07)}
-.pn.top{border-radius:60px 60px 0 0/36px 36px 0 0}
+.pn.tp{border-radius:60px 60px 0 0/36px 36px 0 0}
 .plaque{position:absolute;left:50%;top:20%;transform:translateX(-50%);width:62%;padding:9px 6px 8px;text-align:center;background:linear-gradient(180deg,#e6cc85,#c9a24b 55%,#8f7230);color:#2a1d07;box-shadow:0 3px 8px rgba(0,0,0,.6),inset 0 0 0 2px rgba(255,246,214,.4);z-index:2}
 .plaque b{display:block;font:700 clamp(12px,2.2vw,16px)/1.1 var(--f-display);letter-spacing:.12em;text-transform:uppercase}
 .plaque small{display:block;margin-top:3px;font:600 7.5px var(--f-label);letter-spacing:.26em;text-transform:uppercase}
@@ -651,17 +651,382 @@ a.btn{text-decoration:none}
 .sc-tip{color:var(--mute);font-size:13px;margin-top:10px}
 .btn.cam{gap:8px}
 
+
+/* ===== enchanted castle library theme (original artwork, inspired by magical-school libraries) ===== */
+:root{
+  --forest-950:#05061a; --forest-900:#0a0d24; --forest-800:#121637; --forest-700:#1b2047; --forest-600:#2a3166; --sage:#66c9a6;
+  --char:#0d1029; --char-2:#141838;
+  --gold:#d6b25a; --gold-hi:#f6e3a4; --gold-lo:#8a6c2c;
+  --paper:#eadbb6; --paper-2:#d9c79b; --paper-ink:#241a12; --paper-mute:#645238;
+  --ivory:#efe6d0; --mute:#9fa2c2; --line:rgba(214,178,90,.3);
+  --wood-1:#5d4733; --wood-2:#3b2c1e; --wood-3:#20170e;
+  --f-display:'IM Fell English','Cormorant Garamond',Georgia,serif;
+  --f-label:'Cinzel','Josefin Sans',Georgia,serif;
+  --arc:#a99cff; --ember:#ffb15c;
+  --ease:cubic-bezier(.22,.7,.2,1);
+}
+body{background:#0a0d24}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+   radial-gradient(1.2px 1.2px at 8% 14%,rgba(255,244,214,.9),transparent),radial-gradient(1px 1px at 22% 62%,rgba(255,244,214,.7),transparent),
+   radial-gradient(1.4px 1.4px at 36% 28%,rgba(220,214,255,.9),transparent),radial-gradient(1px 1px at 47% 80%,rgba(255,244,214,.6),transparent),
+   radial-gradient(1.3px 1.3px at 58% 12%,rgba(255,244,214,.85),transparent),radial-gradient(1px 1px at 69% 55%,rgba(220,214,255,.7),transparent),
+   radial-gradient(1.2px 1.2px at 81% 33%,rgba(255,244,214,.8),transparent),radial-gradient(1px 1px at 92% 74%,rgba(255,244,214,.6),transparent),
+   radial-gradient(1px 1px at 15% 90%,rgba(220,214,255,.6),transparent),radial-gradient(1.4px 1.4px at 74% 92%,rgba(255,244,214,.7),transparent),
+   radial-gradient(ellipse 90% 60% at 50% 0%,#1b2047,#0a0d24 70%);
+  animation:twinkle 6s ease-in-out infinite alternate}
+@keyframes twinkle{from{opacity:.75}to{opacity:1}}
+
+.top{background:rgba(9,12,34,.82);border-bottom:1px solid var(--line)}
+.brand b,.d-title b{font-family:var(--f-label);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:20px}
+.d-title b{font-size:clamp(22px,4.6vw,34px);letter-spacing:.16em}
+.label,.btn,.plaque small,.d-hint,.heroline span{font-family:var(--f-label)}
+.btn{border-radius:999px;letter-spacing:.12em;font-weight:600;font-size:11.5px}
+.btn.solid{background:linear-gradient(180deg,#f6e3a4,#d6b25a 55%,#a78235);box-shadow:0 8px 22px -10px rgba(214,178,90,.85),0 0 0 1px rgba(255,236,170,.25) inset}
+.btn:hover{background:rgba(214,178,90,.16);box-shadow:0 0 22px -6px rgba(169,156,255,.55)}
+h1,h2,h3,h4{font-weight:400}
+
+/* hero */
+.hero{background:radial-gradient(ellipse 60% 55% at 22% 78%,rgba(255,177,92,.14),transparent 60%),radial-gradient(ellipse 55% 50% at 80% 20%,rgba(169,156,255,.16),transparent 62%),linear-gradient(180deg,#070920,#121637 58%,#0b0e28)}
+.hero::before{background:repeating-linear-gradient(90deg,rgba(214,200,255,.02) 0 2px,transparent 2px 9px)}
+.hero-shade{background:radial-gradient(ellipse 60% 70% at 50% 52%,rgba(6,8,26,.92),rgba(6,8,26,.55) 70%,rgba(6,8,26,.22)),linear-gradient(90deg,rgba(6,8,26,.5),transparent 30%,transparent 70%,rgba(6,8,26,.5))}
+.beam{background:linear-gradient(180deg,rgba(190,180,255,.2),transparent 75%)}
+.hero h1,.hero-in h1{font-style:italic}
+.candles{position:absolute;inset:0 0 auto;height:52%;pointer-events:none;z-index:2;overflow:hidden}
+.cnd{position:absolute;left:var(--x);top:var(--y);width:10px;height:var(--h,52px);border-radius:3px 3px 2px 2px;background:linear-gradient(90deg,#d9c9a0,#fff5da 45%,#c2ad7c);animation:cbob var(--d,7s) ease-in-out infinite alternate;animation-delay:var(--dl,0s);filter:drop-shadow(0 0 12px rgba(255,177,92,.45))}
+.cnd::before{content:"";position:absolute;left:50%;top:-18px;width:9px;height:18px;transform:translateX(-50%);border-radius:50% 50% 50% 50%/68% 68% 32% 32%;background:radial-gradient(ellipse at 50% 78%,#fffbe0 0 22%,#ffc561 52%,rgba(255,120,30,0) 82%);transform-origin:50% 100%;animation:flick 2.2s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.cnd::after{content:"";position:absolute;left:50%;top:-44px;width:84px;height:84px;margin-left:-42px;background:radial-gradient(circle,rgba(255,190,100,.26),transparent 66%)}
+@keyframes cbob{from{transform:translateY(0) rotate(-1deg)}to{transform:translateY(16px) rotate(1.6deg)}}
+@keyframes flick{0%,100%{transform:translateX(-50%) scale(1,1)}30%{transform:translateX(-52%) scale(.92,1.08)}62%{transform:translateX(-48%) scale(1.06,.95)}}
+#wand{position:fixed;inset:0;z-index:44;pointer-events:none;width:100%;height:100%}
+
+/* door: enchanted entrance */
+.door{background:radial-gradient(ellipse 80% 60% at 50% 42%,#1b2047,#0a0d24 68%,#04050f)}
+.d-frame{border-color:#2a2f58;box-shadow:0 0 0 3px #7a6a3c,0 0 0 4px rgba(246,227,164,.3),0 0 70px 6px rgba(169,156,255,.28),0 40px 80px -20px #000;background:#1a1c3c}
+.d-light{background:repeating-linear-gradient(0deg,transparent 0 72px,rgba(20,22,60,.6) 72px 76px),radial-gradient(ellipse at 50% 72%,#fffbe8 0,#ffd98a 34%,#a99cff 88%)}
+.d-leaf{background:linear-gradient(90deg,#1a1630,#33224a 50%,#1a1630);box-shadow:inset 0 0 0 2px rgba(214,178,90,.45),inset 0 0 44px rgba(0,0,0,.5)}
+.plaque{background:linear-gradient(180deg,#f6e3a4,#d6b25a 55%,#8a6c2c)}
+.plaque b{font-family:var(--f-label);letter-spacing:.2em}
+
+/* bookcases and spines */
+.case{background:radial-gradient(ellipse at 50% 100%,rgba(255,177,92,.07),transparent 70%),linear-gradient(180deg,#141838,#0e1130);border-color:#3b2c1e}
+.spine{box-shadow:inset 0 6px 0 -3px var(--ac),inset 0 -6px 0 -3px var(--ac),2px 0 3px rgba(0,0,0,.45),0 0 0 0 rgba(169,156,255,0)}
+.bk.pulled{filter:drop-shadow(0 0 18px rgba(169,156,255,.5))}
+#hinfo{background:linear-gradient(180deg,#f2e5c2,#e2d0a2);border-radius:6px}
+#hinfo,.dlg{border-radius:6px}
+
+/* ===== soft touch: smooth, gentle motion everywhere ===== */
+.btn,.iconbtn,.minibtn,.card,.hs button,.sc-tabs button,.tab,.chip,.spine,.nook button,input,select,textarea{transition:background-color .45s var(--ease),color .45s var(--ease),border-color .45s var(--ease),box-shadow .5s var(--ease),transform .45s var(--ease),opacity .45s var(--ease),filter .45s var(--ease)}
+.btn:active,.iconbtn:active{transform:scale(.97)}
+.card:hover{transform:translateY(-4px)}
+main>section,.band>.wrap{animation:softIn .9s var(--ease) both}
+@keyframes softIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal{transition:opacity .45s var(--ease)}
+.dlg{transition:transform .55s var(--ease),opacity .45s var(--ease)}
+#hinfo{transition:opacity .4s var(--ease),transform .5s var(--ease)}
+.door{transition:opacity 1.1s ease}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}main>section,.band>.wrap{animation:none}.cnd,.cnd::before,body::after{animation:none}#wand{display:none}}
+
+/* phone: book info becomes a bottom sheet (tap a spine) */
+@media (hover:none),(max-width:520px){
+  #hinfo{display:block!important;left:10px!important;right:10px!important;top:auto!important;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:auto;max-height:62vh;overflow:auto;transform:translateY(24px)}
+  #hinfo[hidden]{display:none!important}
+  #hinfo.on{transform:none}
+}
+
+
+/* ===== accounts, libraries, sharing ===== */
+.btn.acct{gap:8px}
+.btn.acct .dot{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;background:var(--gold);color:#1b1408;font:700 11px var(--f-label);letter-spacing:0}
+#m-auth .dlg{width:min(460px,100%)}
+.au-err{min-height:22px;margin:6px 0 10px;color:#f0b1a9;font-size:14px}
+.au-err.ok{color:var(--sage)}
+.au-guest{margin-top:14px;text-align:center}
+.au-guest .btn{font-size:10.5px;color:var(--mute)}
+.ac-sec{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.ac-sec:first-child{margin-top:6px;padding-top:0;border:0}
+.ac-sec h3{font:600 12px var(--f-label);letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.libpick{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin-bottom:8px;padding:11px 14px;text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:8px;color:var(--ivory)}
+.libpick[aria-pressed="true"]{border-color:var(--gold);background:rgba(214,178,90,.12);box-shadow:0 0 22px -10px rgba(169,156,255,.7)}
+.libpick small,.mem small{color:var(--mute);font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase}
+.invrow,.mem{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.invrow .nm,.mem .nm{flex:1;min-width:140px;overflow:hidden;text-overflow:ellipsis}
+.invrow input{flex:1;min-width:160px}
+.invrow select,.mem select{width:auto;min-width:110px}
+.ac-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.ac-row input{flex:1;min-width:150px}
+.ac-note{color:var(--mute);font-size:14px;margin:4px 0 10px}
+
+
+/* ===== castle hall: stone, tall windows, moonlight, mist ===== */
+body::after{display:none}
+#castle{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;
+  background:
+   linear-gradient(180deg,rgba(5,6,20,.5),rgba(5,6,20,.05) 38%,rgba(5,6,20,.72)),
+   url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='128'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 .5  0 0 0 0 .55  0 0 0 0 .8  0 0 0 .13 0'/></filter><rect width='160' height='128' filter='url(%23n)'/><path d='M0 .5H160M0 64.5H160M0 128.5H160M.5 0V64M80.5 64V128' stroke='rgba(0,0,0,.55)' stroke-width='2' fill='none'/></svg>"),
+   linear-gradient(180deg,#1a1f45,#10132e 60%,#0a0c20)}
+.cw{position:absolute;top:6vh;left:var(--x);width:clamp(86px,12vw,180px);height:clamp(220px,50vh,520px);transform:translateX(-50%);
+  border-radius:999px 999px 4px 4px;
+  background:
+   linear-gradient(90deg,transparent 48%,rgba(8,9,26,.9) 48% 52%,transparent 52%),
+   linear-gradient(0deg,transparent 22%,rgba(8,9,26,.85) 22% 24.5%,transparent 24.5% 50%,rgba(8,9,26,.85) 50% 52.5%,transparent 52.5% 76%,rgba(8,9,26,.85) 76% 78.5%,transparent 78.5%),
+   radial-gradient(circle at 28% 22%,#fff 0 1px,transparent 2px),radial-gradient(circle at 74% 38%,#e9e4ff 0 1px,transparent 2px),radial-gradient(circle at 40% 60%,#fff 0 1px,transparent 2px),
+   linear-gradient(180deg,#5a63c9,#2a3190 50%,#141a58);
+  box-shadow:0 0 0 7px #2b3156,0 0 0 10px #0f1228,inset 0 0 28px rgba(0,0,10,.5),0 0 70px 6px rgba(120,130,255,.28);opacity:.92}
+.cw.mid::before{content:"";position:absolute;left:50%;top:14%;width:34%;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle at 38% 36%,#fffdf0,#f6eec8 55%,#d9d2a8);box-shadow:0 0 40px 14px rgba(255,250,210,.4)}
+.cw::after{content:"";position:absolute;left:-40%;right:-40%;top:100%;height:78vh;background:linear-gradient(180deg,rgba(160,170,255,.2),transparent);clip-path:polygon(22% 0,78% 0,128% 100%,-28% 100%);filter:blur(7px)}
+.mist{position:absolute;left:-30%;width:160%;height:34vh;bottom:-6vh;background:radial-gradient(ellipse 30% 55% at 20% 60%,rgba(170,180,230,.14),transparent 70%),radial-gradient(ellipse 28% 50% at 60% 50%,rgba(170,180,230,.12),transparent 70%),radial-gradient(ellipse 24% 45% at 88% 62%,rgba(170,180,230,.12),transparent 70%);animation:mistA 38s linear infinite}
+.mist.m2{bottom:-12vh;opacity:.8;animation-duration:60s;animation-direction:reverse}
+@keyframes mistA{from{transform:translateX(-12%)}to{transform:translateX(12%)}}
+.hero{background:radial-gradient(ellipse 60% 50% at 50% 100%,rgba(255,177,92,.08),transparent 65%),linear-gradient(180deg,rgba(6,8,26,.25),rgba(6,8,26,.55))}
+.hshelves{opacity:.5;mask-image:linear-gradient(180deg,transparent,#000 22%,#000 78%,transparent)}
+.hero-shade{background:radial-gradient(ellipse 58% 68% at 50% 52%,rgba(6,8,26,.9),rgba(6,8,26,.5) 70%,rgba(6,8,26,.1)),linear-gradient(90deg,rgba(6,8,26,.55),transparent 28%,transparent 72%,rgba(6,8,26,.55))}
+.beam{display:none}
+.nook{background:linear-gradient(180deg,rgba(8,10,28,.6),rgba(8,10,28,.78))}
+.candles{height:30%}
+.cnd::after{width:60px;height:60px;margin-left:-30px;top:-32px;background:radial-gradient(circle,rgba(255,190,100,.18),transparent 66%)}
+
+/* ===== gothic oak bookcases ===== */
+:root{--aura:rgba(169,156,255,.20)}
+.shelfblock{position:relative;--aura:rgba(169,156,255,.20)}
+.shelfblock[data-ab="ROM"]{--aura:rgba(255,92,138,.22)}
+.shelfblock[data-ab="HOR"]{--aura:rgba(110,230,170,.20)}
+.shelfblock[data-ab="FSM"]{--aura:rgba(255,140,60,.22)}
+.shelfblock[data-ab="CRM"]{--aura:rgba(120,140,255,.22)}
+.shelfblock[data-ab="SLF"]{--aura:rgba(255,170,60,.22)}
+.shelfblock[data-ab="POE"]{--aura:rgba(190,150,255,.24)}
+.shelfblock[data-ab="CON"]{--aura:rgba(80,220,170,.18)}
+.case{background:
+   radial-gradient(ellipse 70% 40% at 50% 0%,var(--aura),transparent 70%),
+   repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 3px,transparent 3px 11px),
+   linear-gradient(180deg,#111531,#0b0e26);
+  border:13px solid #3a2a1c;border-top:20px solid #4a3623;border-bottom:8px solid #21170e;
+  border-image:none;border-radius:46px 46px 6px 6px/34px 34px 6px 6px;
+  box-shadow:0 0 0 2px #7a6130,0 0 0 4px #1a120a,0 30px 40px -18px #000,inset 0 0 70px rgba(0,0,0,.55),inset 0 0 40px var(--aura)}
+.case::before{left:50%;right:auto;top:-30px;width:22px;height:22px;transform:translateX(-50%) rotate(45deg);background:linear-gradient(135deg,#f6e3a4,#d6b25a 60%,#8a6c2c);border-radius:3px;box-shadow:0 0 14px rgba(246,227,164,.45);height:22px}
+.shelfrow::after{background:linear-gradient(180deg,#5a4430,#3a2a1c 55%,#21170e);box-shadow:0 14px 22px -6px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,230,170,.28)}
+.shelfhead{position:relative;min-height:56px;align-items:center}
+.shelfhead .linkbtn{margin-right:96px}
+.critter{position:absolute;right:4px;bottom:-12px;width:84px;height:84px;z-index:6;cursor:pointer;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55));-webkit-tap-highlight-color:transparent}
+.critter svg{width:100%;height:100%;overflow:visible}
+.critter::after{content:attr(data-say);position:absolute;right:70px;bottom:62px;width:max-content;max-width:190px;padding:7px 11px;background:#f0e2bf;color:#2a1d10;border-radius:10px 10px 2px 10px;font:italic 14px/1.25 var(--f-display);opacity:0;transform:translateY(6px) scale(.96);transition:opacity .35s var(--ease),transform .4s var(--ease);pointer-events:none;box-shadow:0 8px 18px -8px #000}
+.critter:hover::after,.critter.say::after{opacity:1;transform:none}
+.critter.jump{animation:crJump .6s var(--ease)}
+@keyframes crJump{30%{transform:translateY(-16px) rotate(-4deg)}60%{transform:translateY(0) rotate(2deg)}}
+.cr-bob{animation:crBob 4.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes crBob{50%{transform:translateY(-5px)}}
+.cr-float{animation:crFloat 5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes crFloat{0%,100%{transform:translate(0,2px) rotate(-2deg)}50%{transform:translate(4px,-9px) rotate(2deg)}}
+.cr-pulse{animation:crPulse 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes crPulse{50%{transform:translate(50px,26px) scale(1.18)}}
+.cr-tilt{animation:crTilt 5.5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes crTilt{0%,70%,100%{transform:rotate(0)}78%,90%{transform:rotate(-5deg)}}
+.cr-fly{animation:crFly 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes crFly{0%,100%{transform:translate(0,2px) rotate(-3deg)}50%{transform:translate(-6px,-8px) rotate(3deg)}}
+.cr-wing{animation:crWing 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:0% 100%}
+.cr-wing2{animation:crWing 1.6s ease-in-out infinite reverse;transform-box:fill-box;transform-origin:100% 100%}
+@keyframes crWing{50%{transform:scaleY(.82) rotate(-6deg)}}
+.cr-flame{animation:crFlame 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 50%}
+@keyframes crFlame{50%{transform:scale(1.25,.8);opacity:.75}}
+.cr-blink{animation:crBlink 5s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes crBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.cr-spin{animation:crSpin 9s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes crSpin{to{transform:rotate(360deg)}}
+.cr-write{animation:crWrite 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:20% 90%}
+@keyframes crWrite{50%{transform:translate(-5px,3px) rotate(-6deg)}}
+.cr-bub{animation:crBub 2.2s ease-in infinite;transform-box:fill-box}
+.cr-bub.b2{animation-delay:.7s}.cr-bub.b3{animation-delay:1.3s}
+@keyframes crBub{0%{transform:translateY(4px);opacity:0}30%{opacity:1}100%{transform:translateY(-14px);opacity:0}}
+.cr-steam{animation:crSteam 3s ease-in-out infinite}
+@keyframes crSteam{50%{transform:translateY(-5px);opacity:.3}}
+.cr-star{animation:crTw 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes crTw{50%{transform:scale(1.35) rotate(20deg)}}
+@media (max-width:640px){.critter{width:64px;height:64px;bottom:-8px}.shelfhead .linkbtn{margin-right:72px}.critter::after{right:50px;bottom:48px;max-width:150px;font-size:13px}}
+@media (prefers-reduced-motion:reduce){.critter *,.mist,.critter{animation:none!important}}
+
+
+/* ===== v6: castle gate, stone walls, spine designs, letter plates, wish list ===== */
+:root{--stone:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='192'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .55  0 0 0 0 .6  0 0 0 0 .8  0 0 0 .22 0'/%3E%3C/filter%3E%3Crect x='0.0' y='0' width='66.9' height='44' fill='rgb(91,98,121)' fill-opacity='0.78' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M2.0 2.0H64.9' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M2.0 41.0H64.9' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='66.9' y='0' width='62.6' height='44' fill='rgb(79,85,106)' fill-opacity='0.66' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M68.9 2.0H127.4' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M68.9 41.0H127.4' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='129.4' y='0' width='61.8' height='44' fill='rgb(68,73,92)' fill-opacity='0.71' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M131.4 2.0H189.3' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M131.4 41.0H189.3' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='191.3' y='0' width='64.7' height='44' fill='rgb(76,87,110)' fill-opacity='0.72' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M193.3 2.0H254.0' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M193.3 41.0H254.0' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='-24.3' y='44' width='48.7' height='60' fill='rgb(83,87,119)' fill-opacity='0.61' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M-22.3 46.0H22.3' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M-22.3 101.0H22.3' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='24.3' y='44' width='47.9' height='60' fill='rgb(82,89,123)' fill-opacity='0.58' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M26.3 46.0H70.2' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M26.3 101.0H70.2' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='72.2' y='44' width='47.1' height='60' fill='rgb(73,84,102)' fill-opacity='0.73' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M74.2 46.0H117.4' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M74.2 101.0H117.4' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='119.4' y='44' width='55.0' height='60' fill='rgb(78,86,117)' fill-opacity='0.85' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M121.4 46.0H172.3' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M121.4 101.0H172.3' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='174.3' y='44' width='57.3' height='60' fill='rgb(90,95,121)' fill-opacity='0.61' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M176.3 46.0H229.7' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M176.3 101.0H229.7' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='0.0' y='104' width='60.5' height='40' fill='rgb(88,93,123)' fill-opacity='0.54' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M2.0 106.0H58.5' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M2.0 141.0H58.5' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='60.5' y='104' width='51.1' height='40' fill='rgb(73,83,103)' fill-opacity='0.84' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M62.5 106.0H109.5' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M62.5 141.0H109.5' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='111.5' y='104' width='39.6' height='40' fill='rgb(91,95,119)' fill-opacity='0.57' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M113.5 106.0H149.2' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M113.5 141.0H149.2' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='151.2' y='104' width='41.7' height='40' fill='rgb(65,76,106)' fill-opacity='0.84' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M153.2 106.0H190.8' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M153.2 141.0H190.8' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='192.8' y='104' width='63.2' height='40' fill='rgb(76,86,106)' fill-opacity='0.70' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M194.8 106.0H254.0' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M194.8 141.0H254.0' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='-40.7' y='144' width='81.3' height='48' fill='rgb(73,82,100)' fill-opacity='0.84' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M-38.7 146.0H38.7' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M-38.7 189.0H38.7' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='40.7' y='144' width='60.4' height='48' fill='rgb(88,93,115)' fill-opacity='0.59' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M42.7 146.0H99.0' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M42.7 189.0H99.0' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='101.0' y='144' width='63.6' height='48' fill='rgb(67,71,90)' fill-opacity='0.66' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M103.0 146.0H162.6' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M103.0 189.0H162.6' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect x='164.6' y='144' width='50.7' height='48' fill='rgb(79,85,109)' fill-opacity='0.66' stroke='rgba(2,3,12,.85)' stroke-width='2.5'/%3E%3Cpath d='M166.6 146.0H213.3' stroke='rgba(210,220,255,.22)' stroke-width='1.5'/%3E%3Cpath d='M166.6 189.0H213.3' stroke='rgba(0,0,10,.45)' stroke-width='2'/%3E%3Crect width='256' height='192' filter='url(%23n)'/%3E%3C/svg%3E");--arch:polygon(0.00% 51.96%,0.38% 46.73%,1.52% 41.54%,3.41% 36.43%,6.03% 31.44%,9.37% 26.60%,13.40% 21.96%,18.08% 17.55%,23.40% 13.39%,29.29% 9.53%,35.72% 6.00%,42.64% 2.81%,50.00% -0.00%,57.36% 2.81%,64.28% 6.00%,70.71% 9.53%,76.60% 13.39%,81.92% 17.55%,86.60% 21.96%,90.63% 26.60%,93.97% 31.44%,96.59% 36.43%,98.48% 41.54%,99.62% 46.73%,100.00% 51.96%,100.00% 100.00%,0.00% 100.00%)}
+/* inside wall: real ashlar stone with torch-lit warmth */
+#castle{background:
+  radial-gradient(ellipse 36% 30% at 3% 62%,rgba(255,150,60,.22),transparent 70%),
+  radial-gradient(ellipse 36% 30% at 97% 62%,rgba(255,150,60,.22),transparent 70%),
+  linear-gradient(180deg,rgba(5,6,20,.55),rgba(5,6,20,.02) 36%,rgba(5,6,20,.7)),
+  var(--stone) 0 0/300px auto,
+  linear-gradient(180deg,#232a55,#161a3a 60%,#0c0e24)}
+.hero::before{background:radial-gradient(ellipse 90% 80% at 50% 50%,transparent 40%,rgba(5,6,18,.7))}
+.hero{background:linear-gradient(180deg,rgba(8,8,24,.35),rgba(8,8,24,.2))}
+.case{background:radial-gradient(ellipse at 50% 0,#1c120d,#0d0907 75%),#0d0907}
+
+/* entrance: castle gate */
+.door{background:
+  radial-gradient(ellipse 50% 45% at 50% 50%,rgba(255,170,80,.2),transparent 70%),
+  linear-gradient(180deg,rgba(4,5,16,.6),rgba(4,5,16,.1) 40%,rgba(4,5,16,.85)),
+  var(--stone) 0 0/260px auto,#10132c}
+.door::before{background:radial-gradient(ellipse 80% 70% at 50% 50%,transparent 45%,rgba(2,3,10,.75))}
+.d-frame{border:0;border-radius:0;clip-path:var(--arch);box-shadow:none;
+  background:linear-gradient(90deg,rgba(0,0,0,.55),transparent 22%,transparent 78%,rgba(0,0,0,.55)),var(--stone) 0 0/150px auto,#33385c}
+.d-frame::after{content:"";position:absolute;left:50%;top:0;width:11%;height:6.5%;transform:translateX(-50%);background:linear-gradient(180deg,#8d93b8,#5c6288);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%);box-shadow:inset 0 0 0 2px rgba(0,0,0,.4);z-index:4}
+.d-light{inset:2.4% 7% 0;clip-path:var(--arch);background:radial-gradient(ellipse at 50% 80%,#fff3c8 0,#f2b85c 40%,#8a4b17 90%)}
+.d-leaf{inset:2.4% 7% 0;border-radius:0;clip-path:var(--arch);
+  background:
+   repeating-linear-gradient(90deg,rgba(0,0,0,.6) 0 2px,rgba(255,255,255,.06) 2px 4px,transparent 4px 36px),
+   repeating-linear-gradient(88deg,rgba(0,0,0,.1) 0 1px,transparent 1px 5px),
+   linear-gradient(90deg,#24150b,#4b2c18 45%,#2c190d);
+  box-shadow:inset 0 0 40px rgba(0,0,0,.6)}
+.strap{position:absolute;left:0;right:0;height:5.2%;transform:translateY(-50%);z-index:1;
+  background:radial-gradient(circle at 50% 50%,#b9bdd0 0 1.6px,#222 2px,transparent 2.6px) 8px 50%/20px 100% repeat-x,linear-gradient(180deg,#555a6c,#23252f 45%,#12131a);
+  box-shadow:0 2px 3px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.18)}
+.gseam{position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;background:linear-gradient(90deg,rgba(0,0,0,.8),rgba(0,0,0,.3));z-index:1}
+.plaque{top:21%;width:56%;background:linear-gradient(180deg,#464b5f,#2a2d3a 55%,#1a1c25);color:#e6cc85;box-shadow:0 3px 8px rgba(0,0,0,.7),inset 0 0 0 2px rgba(230,204,133,.45);border-radius:2px;z-index:2}
+.plaque b{letter-spacing:.2em}
+.knocker{top:42%}
+.torch{position:absolute;top:50%;left:50%;width:14px;height:90px;margin-top:-30px;z-index:1;background:linear-gradient(90deg,#1d1d25,#555a6a 50%,#1d1d25);border-radius:3px;box-shadow:0 8px 6px rgba(0,0,0,.5)}
+.torch.l{margin-left:calc(var(--fw,300px)*-.5 - 66px)}.torch.r{margin-left:calc(var(--fw,300px)*.5 + 52px)}
+.torch b{position:absolute;left:50%;top:-34px;width:26px;height:44px;margin-left:-13px;border-radius:50% 50% 45% 45%/70% 70% 30% 30%;background:radial-gradient(ellipse at 50% 80%,#fff6c8 0,#ffc24a 35%,#ff7a1c 70%,transparent 75%);filter:blur(.6px);animation:flame 1.3s ease-in-out infinite;transform-origin:50% 100%}
+.torch b::after{content:"";position:absolute;left:-60px;top:-40px;width:146px;height:146px;border-radius:50%;background:radial-gradient(circle,rgba(255,150,50,.34),transparent 65%);pointer-events:none}
+.torch.r b{animation-delay:-.6s}
+.door{--fw:min(312px,38.4dvh,84vw)}
+@keyframes flame{0%,100%{transform:scale(1,1) rotate(-2deg)}30%{transform:scale(.92,1.08) rotate(2deg)}60%{transform:scale(1.06,.94) rotate(-1deg)}}
+@media(max-width:560px){.torch{display:none}}
+@media(prefers-reduced-motion:reduce){.torch b{animation:none}}
+
+/* spine designs: calm monochrome bodies with a thin colour line. Title area is as large as the spine allows. */
+:root{--soft:55%}
+.bk .f-spine{background:linear-gradient(90deg,var(--c2),var(--c1) 18%,var(--c1) 74%,var(--c2)),var(--c1);box-shadow:inset 1px 0 0 color-mix(in srgb,var(--acc) 60%,transparent),inset -1px 0 0 color-mix(in srgb,var(--acc) 60%,transparent),inset 3px 0 3px rgba(255,255,255,.05),inset -3px 0 5px rgba(0,0,0,.4),0 6px 8px -2px rgba(0,0,0,.6)}
+.bk .f-spine::before{background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),linear-gradient(90deg,rgba(255,255,255,.08),transparent 30%)}
+.s-title{margin-top:26px;height:calc(var(--H) - 98px);max-width:calc(var(--T) - 10px);text-overflow:clip;text-shadow:0 1px 1px rgba(0,0,0,.5);font-weight:700}
+.sb{height:2px;border:0;opacity:1;background:color-mix(in srgb,var(--acc) 70%,transparent);box-shadow:none}
+.sb.t{top:10px}.sb.b{bottom:52px}
+.sb.t::after,.sb.b::after{display:none}
+.s-author,.s-emb{color:color-mix(in srgb,var(--acc) 85%,#fff 0%);font-weight:600}
+.s-emb{border-color:color-mix(in srgb,var(--acc) 60%,transparent)}
+.bk.sp1 .sb{height:4px;background:linear-gradient(180deg,rgba(0,0,0,.4),color-mix(in srgb,var(--acc) 65%,transparent) 30% 70%,rgba(0,0,0,.4))}
+.bk.sp2 .sb{display:none}
+.bk.sp2 .f-spine{box-shadow:inset 0 0 0 2px rgba(0,0,0,.3),inset 0 0 0 3px color-mix(in srgb,var(--acc) 60%,transparent),0 6px 8px -2px rgba(0,0,0,.6)}
+.bk.sp2 .s-title{max-width:calc(var(--T) - 16px)}
+.bk.sp3 .sb.t{top:30px}.bk.sp3 .sb.b{bottom:52px}
+.bk.sp3 .f-spine::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 64% 50%,var(--c1) 0 4.4px,transparent 5px) 50% 8px/14px 14px no-repeat,radial-gradient(circle,color-mix(in srgb,var(--acc) 75%,transparent) 0 5.6px,transparent 6.2px) 50% 8px/14px 14px no-repeat}
+.bk.sp3 .s-title{margin-top:36px;height:calc(var(--H) - 112px)}
+.bk.sp4 .sb{display:none}
+
+/* books with a PDF: a quiet page-turn on the cover when pulled out */
+.bk.haspdf .f-cover::before{content:"";position:absolute;top:0;bottom:0;right:0;width:100%;z-index:3;pointer-events:none;transform-origin:left center;background:linear-gradient(90deg,#efe3c4,#e2d3ac);box-shadow:-6px 0 12px rgba(0,0,0,.25);transform:rotateY(0deg);opacity:0}
+.bk.haspdf.pulled .f-cover::before{animation:pgturn 1.1s .5s ease-in-out both}
+@keyframes pgturn{0%{opacity:1;transform:perspective(500px) rotateY(0)}70%{opacity:1}100%{opacity:0;transform:perspective(500px) rotateY(-100deg)}}
+@media(prefers-reduced-motion:reduce){.bk.haspdf.pulled .f-cover::before{animation:none}}
+/* reader: simpler, calmer turn */
+.rd-leaf{transition-duration:.7s}
+.rd-leaf.turn .rd-face::before{background:linear-gradient(90deg,rgba(40,20,5,0),rgba(40,20,5,.16));animation-duration:.7s}
+/* wish list */
+.nav .wishnav em{font-style:normal;margin-left:6px;padding:1px 6px;border-radius:9px;background:var(--gold);color:#1a1205;font-size:10px;letter-spacing:0}
+.nav .wishnav em:empty{display:none}
+.wish-add{display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;margin:14px 0}
+@media(max-width:640px){.wish-add{grid-template-columns:1fr}}
+.wish-list{display:grid;gap:8px;max-height:48vh;overflow:auto;padding-right:2px}
+.wish{border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:4px;transition:background .3s,border-color .3s}
+.wish.open{border-color:var(--gold-lo);background:rgba(201,162,75,.07)}
+.w-main{display:flex;align-items:center;gap:8px;padding:10px 12px}
+.w-t{flex:1;min-width:0}.w-t b{display:block;font:600 16px var(--f-display);color:var(--ivory);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.w-t span{display:block;font-size:13px;color:var(--mute)}
+.btn.sm,.iconbtn.sm{min-height:36px;padding:6px 12px;font-size:11px}.iconbtn.sm{width:36px;padding:0}
+.w-buy{padding:2px 12px 14px;animation:wbIn .35s ease both}
+.w-buy p{margin:0 0 8px;color:var(--gold-hi);font:600 11px var(--f-label);letter-spacing:.16em;text-transform:uppercase}
+.w-fmts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.wish-empty{text-align:center;padding:28px 10px;color:var(--mute)}.wish-empty b{display:block;font:600 18px var(--f-display);color:var(--ivory);margin-bottom:4px}
+@keyframes wbIn{from{opacity:0;transform:translateY(-6px)}}
+.tg.fmt span{border-color:var(--gold-lo);color:var(--gold-hi)}
+#fFormat label{display:inline-flex;align-items:center;gap:6px;margin-right:14px}
+.nav button{white-space:nowrap}
+@media(max-width:520px){.nav{margin-left:0;gap:0}.nav button{padding:8px 8px;letter-spacing:.1em;font-size:11px}}
+
+
+/* ===== v8: notes, stats, options, reader extras ===== */
+.stars i{font-style:normal;color:rgba(255,255,255,.18)}.stars i.on{color:var(--gold-hi)}.stars.sm{font-size:12px;letter-spacing:1px}
+.tg.meta2 span,.tg.meta2 .stars{border:0;padding:0}.lentb{color:#ff9f6e!important}.progb{color:var(--sage)!important}
+/* options drawer */
+.optsbtn{position:relative;white-space:nowrap}.optsbtn[data-n]:not([data-n=""])::after{content:attr(data-n);margin-left:6px;padding:0 6px;border-radius:9px;background:var(--gold);color:#1a1205;font-size:10px}
+.opts{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0 2px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.03);animation:wbIn .3s ease both}
+.opts[hidden]{display:none}
+.opts label{display:grid;gap:4px;font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--mute);min-width:170px;flex:1}
+.opts select{font:inherit;letter-spacing:0;text-transform:none}
+.grp-tip{margin:0 0 14px;padding:12px 14px;border:1px dashed var(--gold-lo);color:var(--mute);font-size:14px}
+/* spine badges */
+.bk.lent::before{content:"";position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:#ff8a4d;box-shadow:0 0 0 2px rgba(0,0,0,.5);z-index:6}
+/* profile notes */
+.mynotes{margin:16px 0;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+.mynotes summary{cursor:pointer;padding:12px 14px;font:600 11px var(--f-label);letter-spacing:.18em;text-transform:uppercase;color:var(--gold-hi);list-style:none}
+.mynotes summary::-webkit-details-marker{display:none}.mynotes summary::after{content:"+";float:right}.mynotes[open] summary::after{content:"–"}
+.mn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;padding:2px 14px 14px}
+.mn-row{display:grid;gap:5px;align-content:start;min-width:0}.mn-row.wide{grid-column:1/-1}
+.mn-row label{font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.mn-row input,.mn-row textarea{width:100%;min-width:0;box-sizing:border-box}
+.mn-row small{color:var(--mute);font-size:12px}
+.pgrow{display:flex;align-items:center;gap:8px}.pgrow span{color:var(--mute);font-size:13px}.pgrow input{flex:1}
+.pbar{height:6px;background:rgba(255,255,255,.1);overflow:hidden;border-radius:3px}.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-lo),var(--gold-hi));border-radius:3px;transition:width .6s}
+.pbar.big{height:10px;margin:10px 0 14px}
+.rate{display:flex;gap:2px}.rate button{background:none;border:0;padding:2px 3px;font-size:26px;line-height:1;color:rgba(255,255,255,.2);cursor:pointer;transition:transform .2s,color .2s}
+.rate button[aria-pressed="true"]{color:var(--gold-hi)}.rate button:not(:disabled):hover{transform:scale(1.15)}.rate button:disabled{cursor:default}
+.mn-time{margin:0;padding:0 14px 12px;color:var(--mute);font-size:13px}.mn-time b{color:var(--ivory)}
+.mn-sim{padding:0 14px 14px}.mn-sim h4{margin:0 0 8px;font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.simrow{display:flex;gap:10px;overflow:auto}.simrow .minibtn{width:62px;flex:none}
+@media(max-width:560px){.mn-grid{grid-template-columns:1fr}}
+/* dashboard extras */
+.panels.p2{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr)}
+@media(max-width:900px){.panels.p2{grid-template-columns:1fr}}
+.goal-n{display:flex;align-items:baseline;gap:10px}.goal-n b{font:600 44px var(--f-display);color:var(--gold-hi);line-height:1}.goal-n span{color:var(--mute);font-size:14px}
+.goalf label{display:block;margin-bottom:6px;font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.mbars{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;height:130px;align-items:end}
+.mb{position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.mb i{display:block;width:100%;min-height:3px;background:linear-gradient(180deg,var(--gold-hi),var(--gold-lo));border-radius:2px 2px 0 0;transition:height .6s}
+.mb span{font-size:10px;color:var(--mute)}.mb em{position:absolute;top:-2px;font-style:normal;font-size:10px;color:var(--ivory);transform:translateY(-100%)}
+.nextcard{display:flex;gap:14px;align-items:center;margin-bottom:12px}.nextcard h4{margin:0;font:600 18px var(--f-display);color:var(--ivory)}.nextcard p{margin:2px 0;color:var(--mute);font-size:14px}.nextcard .why{color:var(--gold-hi)}
+.nextact{display:flex;gap:8px;flex-wrap:wrap}
+.lentrow{display:flex;gap:12px;align-items:center;padding:6px 0}.lentrow h4{margin:0;font:600 15px var(--f-display);color:var(--ivory)}.lentrow p{margin:2px 0;color:var(--mute);font-size:13px}
+/* wish list extras */
+.wish-add{grid-template-columns:1.3fr 1fr 1fr}
+.wish-add .btn{grid-column:3}
+@media(max-width:640px){.wish-add{grid-template-columns:1fr}.wish-add .btn{grid-column:auto}}
+.w-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}.w-chips:empty{display:none}
+.w-chips em{font-style:normal;font-size:11px;letter-spacing:.06em;color:var(--mute);border:1px solid var(--line);padding:1px 7px;border-radius:9px}
+.w-chips em.nx{color:#1a1205;background:var(--gold);border-color:var(--gold)}.w-chips em.hi{color:var(--gold-hi);border-color:var(--gold-lo)}
+.w-chips a{font-size:12px;color:var(--gold-hi)}
+/* reader extras */
+.rd-marks{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:2px 16px 6px;color:var(--mute);font:600 10px var(--f-label);letter-spacing:.16em;text-transform:uppercase}
+.rd-marks[hidden]{display:none}
+.rd-marks button{font:600 11px var(--f-label);letter-spacing:.08em;color:var(--gold-hi);background:transparent;border:1px solid var(--gold-lo);padding:4px 10px;cursor:pointer;border-radius:12px}
+#rdBm[aria-pressed="true"],#rdNight[aria-pressed="true"]{color:var(--gold-hi);border-color:var(--gold)}
+#rdBm[aria-pressed="true"] path{fill:currentColor}
+.rd-stage.marked::after{content:"";position:absolute;top:0;right:max(14px,calc(50% - 22px));width:18px;height:46px;background:#b3262e;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);box-shadow:0 2px 4px rgba(0,0,0,.5);pointer-events:none;z-index:6}
+#m-read.night .rd-stage{filter:brightness(.72) sepia(.45) contrast(.95)}
+#m-read.night .scrim{background:radial-gradient(ellipse at 50% 38%,#1a1007,#050302 75%)}
+/* profile is parchment: use ink colours there */
+#m-profile .mynotes{border-color:rgba(80,55,20,.28);background:rgba(255,255,255,.28)}
+#m-profile .mynotes summary{color:#6b4a12}
+#m-profile .mn-row label,#m-profile .mn-sim h4{color:#6b5a3e}
+#m-profile .mn-row small,#m-profile .pgrow span,#m-profile .mn-time{color:#6b5a3e}#m-profile .mn-time b{color:#2a1f10}
+#m-profile .mn-row input,#m-profile .mn-row textarea{background:rgba(255,255,255,.55);color:#2a1f10;border:1px solid rgba(80,55,20,.32);border-radius:2px;padding:9px 10px;font:inherit;font-size:15px}
+#m-profile .mn-row input::placeholder,#m-profile .mn-row textarea::placeholder{color:rgba(80,55,20,.5)}
+#m-profile .mn-row input:focus,#m-profile .mn-row textarea:focus{outline:2px solid rgba(160,110,30,.55);outline-offset:0}
+#m-profile .pbar{background:rgba(80,55,20,.16)}
+#m-profile .rate button{color:rgba(80,55,20,.28)}#m-profile .rate button[aria-pressed="true"]{color:#c18a12}
+#m-profile .simrow small{color:#4a3a22}
+.pgrow input[type=number]{flex:0 0 72px}.pgrow input[type=text]{flex:1 1 auto}
+.opts{padding:14px 16px}.opts label{gap:7px;line-height:1.5}.opts select{font-size:14px;padding:10px 12px}
+.shelfblock{min-width:min(100%,400px)}
+
 </style>
 
 <div id="dim" aria-hidden="true"></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="door" id="door" role="dialog" aria-modal="true" aria-label="Entrance to Bibliotheca">
+  <i class="torch l" aria-hidden="true"><b></b></i><i class="torch r" aria-hidden="true"><b></b></i>
   <div class="d-title"><b>Bibliotheca</b><small>A private library</small></div>
   <div class="d-frame" id="dFrame">
     <div class="d-light"></div>
     <div class="d-leaf" id="dLeaf">
-      <i class="pn top" style="left:9%;top:9%;width:39%;height:34%"></i><i class="pn top" style="left:52%;top:9%;width:39%;height:34%"></i>
-      <i class="pn" style="left:9%;top:52%;width:39%;height:40%"></i><i class="pn" style="left:52%;top:52%;width:39%;height:40%"></i>
+      <i class="strap" style="top:34%"></i><i class="strap" style="top:60%"></i><i class="strap" style="top:84%"></i><i class="gseam"></i>
       <div class="plaque"><b>Bibliotheca</b><small>Knock and enter</small></div>
       <button class="knocker" id="knocker" aria-label="Knock to enter the Bibliotheca" autofocus>
         <svg viewBox="0 0 80 100" aria-hidden="true"><defs><linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4e3ad"/><stop offset=".5" stop-color="#c9a24b"/><stop offset="1" stop-color="#7a5f22"/></linearGradient></defs>
@@ -682,10 +1047,11 @@ a.btn{text-decoration:none}
       <span><b>Bibliotheca</b><small>A private library</small></span>
     </button>
     <nav class="nav" aria-label="Sections">
-      <button data-go="lobby">Lobby</button><button data-go="dashboard">Ledger</button><button data-go="library">Shelves</button>
+      <button data-go="lobby">Lobby</button><button data-go="dashboard">Ledger</button><button data-go="library">Shelves</button><button data-wish class="wishnav">Wish list<em id="wishN"></em></button>
     </nav>
     <span class="sp"></span>
     <span class="who" id="who" hidden><i></i><span id="whoTxt"></span></span>
+    <button class="btn acct" id="acct" hidden aria-label="Account and libraries"></button>
     <button class="btn w-only" id="scanTop"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 12h10"/></svg><span class="t">Scan</span></button>
     <button class="btn solid w-only" id="addTop"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="t">Add book</span></button>
     <button class="iconbtn" id="lightsBtn" aria-label="House lights" aria-expanded="false" aria-controls="lights"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg></button>
@@ -705,6 +1071,7 @@ a.btn{text-decoration:none}
   <i class="beam"></i><i class="beam b2"></i>
   <canvas id="dust" aria-hidden="true"></canvas>
   <div class="hero-shade"></div>
+  <div class="candles" aria-hidden="true"><i class="cnd" style="--x:10%;--y:14%;--h:46px;--d:7s;--dl:-0s"></i><i class="cnd" style="--x:50%;--y:6%;--h:54px;--d:8s;--dl:-2.5s"></i><i class="cnd" style="--x:90%;--y:16%;--h:46px;--d:7.5s;--dl:-4.5s"></i></div>
   <div class="wrap hero-in">
     <div class="sign">
       <span class="label" id="heroLabel">Private collection</span>
@@ -782,6 +1149,15 @@ a.btn{text-decoration:none}
       <div class="panel"><h3>Recently added</h3><div class="strip" id="recent"></div></div>
       <div class="panel"><h3>Favourites</h3><div class="strip" id="favs"></div></div>
     </div>
+    <div class="panels p2">
+      <div class="panel"><h3>Reading goal</h3><div id="goalBox"></div></div>
+      <div class="panel"><h3>Finished by month <small>last 12 months</small></h3><div id="monthBox"></div></div>
+      <div class="panel"><h3>Top authors</h3><div class="bars" id="authBox"></div></div>
+    </div>
+    <div class="strips">
+      <div class="panel"><h3>What to read next</h3><div id="nextBox"></div></div>
+      <div class="panel"><h3>Lent out</h3><div id="lentBox"></div></div>
+    </div>
   </div>
 </section>
 
@@ -793,8 +1169,14 @@ a.btn{text-decoration:none}
       <div class="tabs" id="tabs" role="group" aria-label="Reading status"></div>
       <div class="tools">
         <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="Search by title or author" autocomplete="off" aria-label="Search by title or author"></div>
-        <select id="sort" aria-label="Sort books"><option value="collection">Collection order</option><option value="recent">Recently added</option><option value="title">Title A to Z</option><option value="author">Author A to Z</option></select>
+        <select id="sort" aria-label="Sort books"><option value="collection">Collection order</option><option value="title">Sort by title, A to Z</option><option value="author">Sort by author, A to Z</option><option value="recent">Recently added</option><option value="rating">Highest rated</option><option value="finished">Recently finished</option><option value="longest">Longest first</option><option value="format">By format owned</option></select>
+        <button type="button" class="btn sm optsbtn" id="optsBtn" aria-expanded="false" aria-controls="opts">Options</button>
         <div class="views" role="group" aria-label="Layout"><button id="vShelves" aria-pressed="true" aria-label="Shelves layout" title="Shelves"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8h16M4 16h16M7 8V4M11 8V5M7 16v-4M11 16v-5M15 16v-4"/></svg></button><button id="vGrid" aria-pressed="false" aria-label="Grid layout" title="Grid"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></button></div>
+      </div>
+      <div class="opts" id="opts" hidden>
+        <label>Shelve books by<select id="optGrp"><option value="genre">Genre</option><option value="series">Series</option><option value="mine">My own shelves</option></select></label>
+        <label>Format owned<select id="optFmt"><option value="all">Any format</option><option value="physical">Physical copy</option><option value="ebook">eBook</option><option value="pdf">PDF</option></select></label>
+        <label>Spine look<select id="optSpine"><option value="mono">Dark with colour lines</option><option value="parchment">Parchment</option><option value="jewel">Jewel colours</option></select></label>
       </div>
       <div class="chips" id="chips" role="group" aria-label="Genre shelves"></div>
     </div>
@@ -848,7 +1230,8 @@ a.btn{text-decoration:none}
     <label for="fDesc">Description<textarea id="fDesc" maxlength="4000" placeholder="What is this book about?"></textarea></label>
     <div class="fl">Reading status<div class="radios" id="fStatus"></div></div>
     <div class="fl">Cover<div class="coverpick"><div id="fCoverPrev" style="width:84px;flex:none"></div><div class="col"><input type="file" id="fCover" accept="image/*" aria-label="Upload cover image"><button type="button" class="btn ghost" id="fCoverReset" style="justify-content:flex-start;padding-left:0;min-height:30px">Use the designed cover</button></div></div></div>
-        <div class="fl">PDF of the book<div class="pdfbox"><div class="radios" id="fPdfMode"></div><div id="fPdfBody"></div><div class="hint" id="fPdfHint"></div></div></div>
+        <div class="fl">Format you own<div class="radios" id="fFormat"></div></div>
+    <div class="fl">PDF of the book<div class="pdfbox"><div class="radios" id="fPdfMode"></div><div id="fPdfBody"></div><div class="hint" id="fPdfHint"></div></div></div>
 <div class="hint" id="fDupe" style="color:#e0b45b" hidden></div>
     <div class="formbtns"><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn solid" id="fSave">Save book</button></div>
   </form>
@@ -863,6 +1246,24 @@ a.btn{text-decoration:none}
     <p class="sub">Use an .xlsx, .xls or .csv file with the columns Book Title, Author, Genre and About the Book. Books already in the library are skipped.</p>
     <label class="dropzone" id="drop" for="impFile"><b>Choose a spreadsheet</b><span>or drop it here</span><input type="file" id="impFile" class="sr" accept=".xlsx,.xls,.csv"></label>
     <div id="impOut"></div>
+  </div>
+</div>
+
+<div class="modal" id="m-wish" hidden>
+  <div class="scrim" data-close></div>
+  <div class="dlg wide wishdlg" role="dialog" aria-modal="true" aria-labelledby="wishH">
+    <button type="button" class="iconbtn xbtn" data-close aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 id="wishH">Wish list</h2>
+    <p class="sub">Books you want to own. When you buy one, tap Bought, choose the copy you got, and it moves onto your shelves.</p>
+    <form class="wish-add" id="wishForm" novalidate>
+      <input id="wTitle" maxlength="200" placeholder="Book title" aria-label="Book title" autocomplete="off">
+      <input id="wAuthor" maxlength="200" placeholder="Author (optional)" aria-label="Author" autocomplete="off">
+      <select id="wPrio" aria-label="Priority"><option value="normal">Normal priority</option><option value="high">High priority</option><option value="low">Low priority</option></select>
+      <input id="wPrice" maxlength="30" placeholder="Price (optional)" aria-label="Price" autocomplete="off">
+      <input id="wLink" type="url" maxlength="400" placeholder="Shop link (optional)" aria-label="Shop link" autocomplete="off">
+      <button type="submit" class="btn solid">Add to wish list</button>
+    </form>
+    <div class="wish-list" id="wishList"></div>
   </div>
 </div>
 
@@ -904,9 +1305,12 @@ a.btn{text-decoration:none}
     <div class="rd-bar">
       <div class="rd-title" id="rdTitle"></div>
       <a class="btn" id="rdOpen" href="#" target="_blank" rel="noopener" hidden>Open PDF</a>
+      <button type="button" class="iconbtn" id="rdBm" aria-pressed="false" aria-label="Bookmark this page" title="Bookmark this page"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+      <button type="button" class="iconbtn" id="rdNight" aria-pressed="false" aria-label="Night reading mode" title="Night reading mode"><svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg></button>
       <button type="button" class="iconbtn" id="rdSound" aria-pressed="true" aria-label="Page-turn sound"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg></button>
       <button type="button" class="iconbtn" data-close aria-label="Close the book"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+    <div class="rd-marks" id="rdMarks" hidden></div>
     <div class="rd-stage" id="rdStage"><div class="rd-book" id="rdBook"></div><div class="rd-load" id="rdLoad"><i></i>Opening the book</div><div class="rd-hint" id="rdHint"></div></div>
     <div class="rd-foot">
       <button type="button" class="btn" id="rdPrev" aria-label="Previous page"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span>Previous</span></button>
@@ -958,6 +1362,36 @@ a.btn{text-decoration:none}
     <p class="sub" id="pqT"></p>
     <div class="pdfbox"><div class="radios" id="pqMode"></div><div id="pqBody"></div><div class="hint" id="pqHint"></div></div>
     <div class="row" style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn solid" id="pqSave">Save PDF</button></div>
+  </div>
+</div>
+
+<div class="modal" id="m-auth" hidden>
+  <div class="scrim"></div>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="auH">
+    <h2 id="auH">Welcome to Bibliotheca</h2>
+    <p class="sub" id="auSub">Sign in to open your own library, or create an account. It is free.</p>
+    <div class="sc-tabs" role="group" aria-label="Sign in or create an account">
+      <button type="button" data-aumode="in" aria-pressed="true">Sign in</button>
+      <button type="button" data-aumode="up" aria-pressed="false">Create account</button>
+    </div>
+    <form id="auForm" novalidate>
+      <div class="fl" id="auNameW" hidden><label for="auName">Your name<input id="auName" autocomplete="name" maxlength="60" placeholder="What should the owl call you?"></label></div>
+      <div class="fl"><label for="auEmail">Email<input id="auEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></label></div>
+      <div class="fl"><label for="auPw">Password<input id="auPw" type="password" autocomplete="current-password" placeholder="At least 6 characters"></label></div>
+      <p class="au-err" id="auErr" role="alert"></p>
+      <div class="row" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="btn solid" id="auGo" type="submit">Sign in</button><button class="btn ghost" id="auForgot" type="button">Forgot password?</button></div>
+    </form>
+    <p class="au-guest"><button class="btn ghost" id="auGuest" type="button">Look around on this device only, without an account</button></p>
+  </div>
+</div>
+
+<div class="modal" id="m-acct" hidden>
+  <div class="scrim" data-close></div>
+  <div class="dlg wide" role="dialog" aria-modal="true" aria-labelledby="acH">
+    <button type="button" class="iconbtn xbtn" data-close aria-label="Close"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 id="acH">Your account</h2>
+    <p class="sub" id="acSub"></p>
+    <div id="acBody"></div>
   </div>
 </div>
 

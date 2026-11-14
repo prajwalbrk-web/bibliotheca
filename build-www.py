@@ -14,9 +14,9 @@ js = open(os.path.join(SRC, 'app.js')).read()
 # ---- fonts (bundled, latin subset)
 FD = os.path.join(H, 'node_modules/@fontsource')
 fonts = [
- ('Cormorant Garamond', 'cormorant-garamond', [(500, 'normal'), (600, 'normal'), (700, 'normal'), (500, 'italic'), (600, 'italic')]),
+ ('Cinzel', 'cinzel', [(400, 'normal'), (600, 'normal'), (700, 'normal')]),
+ ('IM Fell English', 'im-fell-english', [(400, 'normal'), (400, 'italic')]),
  ('Lora', 'lora', [(400, 'normal'), (500, 'normal'), (600, 'normal'), (400, 'italic')]),
- ('Josefin Sans', 'josefin-sans', [(400, 'normal'), (600, 'normal')]),
  ('Special Elite', 'special-elite', [(400, 'normal')]),
 ]
 css = ''
@@ -55,12 +55,13 @@ json.dump({
     "icons": [{"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
               {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]
 }, open(W + '/manifest.webmanifest', 'w'), indent=1)
-open(W + '/sw.js', 'w').write("""const V='rr-v1';const CORE=['./','./index.html','./fonts.css','./manifest.webmanifest','./vendor/xlsx.full.min.js'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+import time
+open(W + '/sw.js', 'w').write("""const V='rr-%d';
+self.addEventListener('install',e=>{self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET'||new URL(e.request.url).origin!==location.origin)return;
-e.respondWith(caches.match(e.request).then(h=>h||fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(V).then(x=>x.put(e.request,c))}return r}).catch(()=>caches.match('./index.html'))))});
-""")
+e.respondWith(fetch(e.request).then(r=>{if(r.ok){const c=r.clone();caches.open(V).then(x=>x.put(e.request,c))}return r}).catch(()=>caches.match(e.request).then(h=>h||caches.match('./index.html'))))});
+""" % int(time.time()))
 
 # ---- native file saving (Excel export) when running inside the Android app
 native = r"""
@@ -84,5 +85,11 @@ head = head.replace('<title>', '<link rel="manifest" href="manifest.webmanifest"
 if '<meta name="viewport"' not in head:
     head = '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' + head
 sw = "<script>if('serviceWorker' in navigator&&!window.Capacitor&&/^https?:/.test(location.protocol)&&location.hostname!=='localhost'){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>"
-open(W + '/index.html', 'w').write(head + "\n<script>\n" + js + "\n</script>\n" + sw + "\n")
+cfg_src = os.path.join(H, 'docs', 'config.js')
+if os.path.exists(cfg_src):
+    shutil.copy(cfg_src, W + '/config.js')
+else:
+    open(W + '/config.js', 'w').write('window.RR_FIREBASE = null;\n')
+tags = '<script src="config.js"></script>\n<script src="vendor/cloud.js"></script>\n'
+open(W + '/index.html', 'w').write(head + "\n" + tags + "<script>\n" + js + "\n</script>\n" + sw + "\n")
 print('www built:', sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(W) for f in fs) // 1024, 'KB')
